@@ -1400,7 +1400,14 @@
     if (!user) { location.hash = '#/login'; return; }
 
     switch (name) {
-      case 'today': renderToday(user); break;
+      case 'today':
+        /* дашборд всегда показывает свежие данные (в т.ч. от других устройств) */
+        DB.refresh().then(function () {
+          var fresh = DB.currentUser();
+          if (!fresh) { location.hash = '#/login'; return; }
+          renderToday(fresh);
+        });
+        break;
       case 'schedule': renderSchedule(user); break;
       case 'homework':
         if (user.role === 'student') renderHomework(user);

@@ -1,7 +1,7 @@
 /* Финальный тест общей базы: «два устройства» + проверка строк в Supabase + очистка */
 const puppeteer = require('puppeteer-core');
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const URL = 'https://tankecu.github.io/voskhod-school/app/';
+const URL = process.env.TEST_URL || 'https://tankecu.github.io/voskhod-school/app/';
 const OUT = 'D:\\rep\\voskhod\\app-shots\\';
 const SB = 'https://dtbwwqpjjplpzmscgblq.supabase.co/rest/v1/';
 const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0Ynd3cXBqanBscHptc2NnYmxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMDQzMzgsImV4cCI6MjEwNDg4MDMzOH0.UFUYkGe3WCS1FibMOTH4-tQBu3ZW84pTgkwCicPn_G8';

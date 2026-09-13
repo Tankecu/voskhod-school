@@ -172,6 +172,7 @@ window.DB = (function () {
 
   var api = {
     init: init,
+    refresh: function () { return adapter.pullAll(); },
     adapterName: function () { return adapter ? adapter.name : 'local'; },
     levels: LEVELS,
 

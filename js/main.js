@@ -494,6 +494,10 @@
 
       function showSuccess(viaBot) {
         success.hidden = false;
+        if (!viaBot) {
+          document.getElementById('formSuccessText').textContent =
+            'Текст заявки скопирован — отправь его нам в открывшемся Telegram, и мы ответим в течение дня.';
+        }
         success.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'nearest' });
         hint.hidden = true;
         btn.textContent = viaBot ? 'Отправить ещё одну заявку' : 'Открыть Telegram ещё раз';

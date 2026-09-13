@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOSKHOD — онлайн-школа поступления в университеты США</title>
+  <meta name="description" content="VOSKHOD готовит абитуриентов из СНГ к SAT, математике, английскому и Milliy Sertifikat — и проводит до письма о зачислении в американский университет.">
+  <meta property="og:title" content="VOSKHOD — твоя траектория ведёт в Америку">
+  <meta property="og:description" content="SAT · Математика · Milliy Sertifikat · TOEFL · Эссе. От первого урока до письма о зачислении.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Космос: WebGL-фон -->
+  <canvas id="cosmos" aria-hidden="true"></canvas>
+  <div class="cosmos-fallback" aria-hidden="true"></div>
+
+  <!-- Курсор -->
+  <div class="cursor" aria-hidden="true"><div class="cursor__ring"></div><div class="cursor__dot"></div></div>
+
+  <!-- Загрузочная секвенция -->
+  <div class="boot" id="boot" aria-hidden="true">
+    <div class="boot__inner">
+      <div class="boot__logo">VOSKHOD</div>
+      <div class="boot__lines" id="bootLines">
+        <span>▸ центр управления полётами … <b>на связи</b></span>
+        <span>▸ звёздная карта … <b>загружена</b></span>
+        <span>▸ траектория … <b>задана</b></span>
+      </div>
+      <div class="boot__go">запуск ▸▸▸</div>
+    </div>
+  </div>
+
+  <!-- Шапка -->
+  <header class="header" id="header">
+    <a class="logo" href="#top" aria-label="VOSKHOD — на главную">
+      <svg class="logo__mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="13" stroke="url(#lg)" stroke-width="1.5" stroke-dasharray="3 5"/>
+        <path d="M16 7 L18.2 13.8 L25 16 L18.2 18.2 L16 25 L13.8 18.2 L7 16 L13.8 13.8 Z" fill="#F5C24B"/>
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#67E8F9"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs>
+      </svg>
+      <span class="logo__text">VOSKHOD</span>
+    </a>
+    <nav class="nav" id="nav">
+      <a href="#trajectory">Полётный план</a>
+      <a href="#programs">Программы</a>
+      <a href="#results">Результаты</a>
+      <a href="#faq">Вопросы</a>
+      <a class="nav__cta" href="#apply">Записаться</a>
+    </nav>
+    <button class="burger" id="burger" aria-label="Открыть меню" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+  </header>
+
+  <main id="top">
+
+    <!-- ══════════ HERO ══════════ -->
+    <section class="hero">
+      <div class="hero__inner">
+        <p class="hero__eyebrow mono">[ миссия: поступление в&nbsp;университеты США&nbsp;]</p>
+        <h1 class="hero__title">
+          Твоя траектория&nbsp;ведёт в&nbsp;<span class="grad-gold">Америку</span>
+        </h1>
+        <p class="hero__sub">
+          VOSKHOD — онлайн-школа для абитуриентов из СНГ. Готовим к SAT, математике,
+          английскому и Milliy Sertifikat — и ведём за руку: от первого урока
+          до письма о зачислении.
+        </p>
+        <div class="hero__actions">
+          <a class="btn btn--gold" href="#apply">Начать полёт — консультация</a>
+          <a class="btn btn--ghost" href="#programs">Смотреть программы</a>
+        </div>
+        <p class="hero__route mono">тшкент&nbsp;40.2°N&nbsp;— нью-йорк&nbsp;40.7°N&nbsp;·&nbsp;10&nbsp;050&nbsp;км&nbsp;·&nbsp;9&nbsp;часов&nbsp;разницы</p>
+      </div>
+      <a class="hero__scroll mono" href="#trajectory" aria-label="Листай вниз">
+        <span>листай вниз</span><i class="hero__scroll-line"></i>
+      </a>
+    </section>
+
+    <!-- ══════════ ТИКЕР ВУЗОВ ══════════ -->
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker__track">
+        <span>HARVARD</span><i>✦</i><span>MIT</span><i>✦</i><span>STANFORD</span><i>✦</i><span>COLUMBIA</span><i>✦</i><span>PRINCETON</span><i>✦</i><span>YALE</span><i>✦</i><span>UC BERKELEY</span><i>✦</i><span>NYU</span><i>✦</i><span>CORNELL</span><i>✦</i><span>DUKE</span><i>✦</i>
+        <span>HARVARD</span><i>✦</i><span>MIT</span><i>✦</i><span>STANFORD</span><i>✦</i><span>COLUMBIA</span><i>✦</i><span>PRINCETON</span><i>✦</i><span>YALE</span><i>✦</i><span>UC BERKELEY</span><i>✦</i><span>NYU</span><i>✦</i><span>CORNELL</span><i>✦</i><span>DUKE</span><i>✦</i>
+      </div>
+    </div>
+
+    <!-- ══════════ ТРАЕКТОРИЯ / ПОЛЁТНЫЙ ПЛАН ══════════ -->
+    <section class="section trajectory" id="trajectory">
+      <div class="container">
+        <p class="eyebrow mono reveal">[ полётный план · 4 ступени ]</p>
+        <h2 class="section__title reveal">Путь наверх <span class="grad-ion">расписан по минутам</span></h2>
+        <p class="section__lead reveal">Никакой «учись и как-нибудь поступишь». У каждого студента — персональная траектория с контрольными точками. Вы всегда знаете, где находитесь и что впереди.</p>
+
+        <ol class="stages">
+          <li class="stage reveal" data-trajectory>
+            <div class="stage__marker"><span class="mono">01</span></div>
+            <div class="stage__card glass">
+              <p class="stage__tag mono">выход на связь · неделя 0</p>
+              <h3>Диагностика</h3>
+              <p>Бесплатная консультация: находим уровень английского и математики, цели и бюджет. Собираем список университетов и строим личную траекторию подготовки.</p>
+            </div>
+          </li>
+          <li class="stage stage--right reveal" data-trajectory>
+            <div class="stage__marker"><span class="mono">02</span></div>
+            <div class="stage__card glass">
+              <p class="stage__tag mono">разгон · 6–12 месяцев</p>
+              <h3>Подготовка</h3>
+              <p>Мини-группы до 8 человек: SAT, математика, английский. Домашние задания с живой проверкой, куратор следит за ритмом — отставших с орбиты не теряем.</p>
+            </div>
+          </li>
+          <li class="stage reveal" data-trajectory>
+            <div class="stage__marker"><span class="mono">03</span></div>
+            <div class="stage__card glass">
+              <p class="stage__tag mono">зажигание · сезон экзаменов</p>
+              <h3>Экзамены</h3>
+              <p>SAT, TOEFL или IELTS, Milliy Sertifikat. Пробники каждый месяц в реальном формате, разбор ошибок и целевые баллы — до тех пор, пока не возьмём свою высоту.</p>
+            </div>
+          </li>
+          <li class="stage stage--right reveal" data-trajectory>
+            <div class="stage__marker"><span class="mono">04</span></div>
+            <div class="stage__card glass">
+              <p class="stage__tag mono">выход на орбиту · осень</p>
+              <h3>Поступление</h3>
+              <p>Эссе, рекомендации, заявки, финансовая помощь и стипендии. Виза F-1, общежитие, перелёт. Финал один — письмо «Congratulations, you're admitted».</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ══════════ ПРОГРАММЫ ══════════ -->
+    <section class="section programs" id="programs">
+      <div class="container">
+        <p class="eyebrow mono reveal">[ бортовое снаряжение · программы ]</p>
+        <h2 class="section__title reveal">Ступени, из которых складывается запуск</h2>
+        <p class="section__lead reveal">Каждая программа — самостоятельный курс. Вместе они накрывают всё: от школьной математики до визового собеседования.</p>
+
+        <div class="cards">
+          <article class="card glass reveal">
+            <div class="card__head"><span class="card__icon">◈</span><h3>SAT&nbsp;· Math &amp; R/W</h3></div>
+            <p>Полная стратегия экзамена: математика без ошибок, чтение и письмо по системе адаптивного SAT.</p>
+            <ul><li>пробники в реальном формате</li><li>разбор каждой ошибки</li><li>личный целевой балл</li></ul>
+            <div class="card__foot mono"><span>6–9 мес</span><b class="chip chip--ion">1400+</b></div>
+          </article>
+
+          <article class="card glass reveal">
+            <div class="card__head"><span class="card__icon">∑</span><h3>Математика</h3></div>
+            <p>От школьной программы СНГ до уровня американской старшей школы — без пробелов в фундаменте.</p>
+            <ul><li>алгебра, функции, статистика</li><li>готовит и к SAT Math</li><li>олимпиадный трек — по желанию</li></ul>
+            <div class="card__foot mono"><span>круглый год</span><b class="chip chip--ion">SAT Math 750+</b></div>
+          </article>
+
+          <article class="card glass reveal">
+            <div class="card__head"><span class="card__icon">⬡</span><h3>Milliy Sertifikat</h3></div>
+            <p>Подготовка к национальному сертификату Узбекистана — ключ к президентским и государственным программам обучения.</p>
+            <ul><li>математика + английский</li><li>формат и регламент экзамена</li><li>внутренние пробники</li></ul>
+            <div class="card__foot mono"><span>4–8 мес</span><b class="chip chip--gold">B2/C1</b></div>
+          </article>
+
+          <article class="card glass reveal">
+            <div class="card__head"><span class="card__icon">✦</span><h3>English · TOEFL / IELTS</h3></div>
+            <p>Академический английский с носителем формата: speaking с обратной связью, эссе, listening на скорости экзамена.</p>
+            <ul><li>мини-группы по уровню</li><li>еженедельные спикинг-клубы</li><li>цель — 100+ TOEFL</li></ul>
+            <div class="card__foot mono"><span>5–10 мес</span><b class="chip chip--ion">TOEFL 100+</b></div>
+          </article>
+
+          <article class="card card--wide glass reveal">
+            <div class="card__head"><span class="card__icon">✉</span><h3>Эссе и заявка · Application</h3></div>
+            <p>Самая недооценённая ступень. Пишем personal statement, который запоминается приёмной комиссии, собираем activities list, выбираем университеты под твой профиль и бюджет, оформляем financial aid и ведём до визы F-1.</p>
+            <ul><li>эссе: от плана до финальной редакции</li><li>список вузов: reach / match / safety</li><li>стипендии и финансовая помощь</li><li>виза F-1 и подготовка к собеседованию</li></ul>
+            <div class="card__foot mono"><span>сентябрь — январь</span><b class="chip chip--gold">под ключ</b></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ЦИФРЫ ══════════ -->
+    <section class="section results" id="results" data-trajectory>
+      <div class="container">
+        <p class="eyebrow mono reveal">[ телеметрия ]</p>
+        <h2 class="section__title reveal">Цифры, за которые <span class="grad-gold">не стыдно</span></h2>
+        <div class="stats">
+          <div class="stat glass reveal"><span class="stat__num mono" data-count="320" data-suffix="+">0</span><span class="stat__label">студентов на борту за 3 года</span></div>
+          <div class="stat glass reveal"><span class="stat__num mono" data-count="97" data-suffix="%">0</span><span class="stat__label">выпускников поступили в вузы США</span></div>
+          <div class="stat glass reveal"><span class="stat__num mono" data-count="1460">0</span><span class="stat__label">средний балл SAT выпускников</span></div>
+          <div class="stat glass reveal"><span class="stat__num mono" data-count="4.2" data-decimals="1" data-prefix="$" data-suffix="M">0</span><span class="stat__label">стипендий и финансовой помощи</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ОТЗЫВЫ ══════════ -->
+    <section class="section voices">
+      <div class="container">
+        <p class="eyebrow mono reveal">[ голоса с орбиты ]</p>
+        <h2 class="section__title reveal">Они уже там. Ты — следующий</h2>
+        <div class="quotes">
+          <figure class="quote glass reveal">
+            <blockquote>«Я пришла со слабым английским и словами "в США — это не про нас". Через год у меня было 1440 SAT и 103 TOEFL, а куратор не дал мне сдаться на этапе эссе».</blockquote>
+            <figcaption><span class="quote__ava grad-ion-bg">ДК</span><span><b>Диана К.</b><i>Columbia University · Ташкент → Нью-Йорк</i></span></figcaption>
+          </figure>
+          <figure class="quote glass reveal">
+            <blockquote>«Milliy Sertifikat и SAT готовились параллельно, и это выглядело страшно. Но план был расписан по неделям — осталось просто идти. Стипендия покрыла 90% стоимости обучения».</blockquote>
+            <figcaption><span class="quote__ava grad-gold-bg">ТА</span><span><b>Тимур А.</b><i>NYU · Engineering · Самарканд → Нью-Йорк</i></span></figcaption>
+          </figure>
+          <figure class="quote glass reveal">
+            <blockquote>«Больше всего зашло, что никто не тянул деньги за "секретные материалы". Честно сказали, куда у меня есть шансы, а куда — нет, и сделали сильнее те заявки, что были реальными».</blockquote>
+            <figcaption><span class="quote__ava grad-ion-bg">МР</span><span><b>Мадина Р.</b><i>Boston University · Бишкек → Бостон</i></span></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ FAQ ══════════ -->
+    <section class="section faq" id="faq">
+      <div class="container container--narrow">
+        <p class="eyebrow mono reveal">[ связь с землёй · вопросы ]</p>
+        <h2 class="section__title reveal">Что обычно спрашивают перед стартом</h2>
+
+        <div class="faq__list">
+          <details class="faq__item glass reveal">
+            <summary>Можно ли поступить в США без денег на обучение?<i class="faq__plus" aria-hidden="true"></i></summary>
+            <div class="faq__body"><p>Да — большинство наших студентов едут на стипендиях и financial aid. Американские вузы дают потребностную помощь даже иностранцам: покрывают от 50% до полной стоимости. На диагностике честно скажем, какие вузы реальны для твоего бюджета и профиля.</p></div>
+          </details>
+          <details class="faq__item glass reveal">
+            <summary>Что такое Milliy Sertifikat и зачем он мне?<i class="faq__plus" aria-hidden="true"></i></summary>
+            <div class="faq__body"><p>Это национальный сертификат Узбекистана по английскому и математике. Он подтверждает уровень B2/C1 для президентских и государственных программ, засчитывается при поступлении и открывает доступ к квотам и грантам. Готовим к нему параллельно с SAT — экзамены во многом перекрываются.</p></div>
+          </details>
+          <details class="faq__item glass reveal">
+            <summary>С какого класса лучше начинать?<i class="faq__plus" aria-hidden="true"></i></summary>
+            <div class="faq__body"><p>Идеально — с 8–9 класса: хватает времени на спокойную подготовку. Но реалистичный минимум — 10 класс при плотном графике, а на трек «пробел + университет» мы берём и одиннадцатиклассников с усиленным планом.</p></div>
+          </details>
+          <details class="faq__item glass reveal">
+            <summary>А если мой английский пока слабый?<i class="faq__plus" aria-hidden="true"></i></summary>
+            <div class="faq__body"><p>Нормальная стартовая точка — около половины наших студентов начинали с уровня ниже Intermediate. Первые месяцы трека — усиленный английский, и только потом экзаменационные форматы. Программа подстроится под твой входной уровень.</p></div>
+          </details>
+          <details class="faq__item glass reveal">
+            <summary>Сколько стоит подготовка?<i class="faq__plus" aria-hidden="true"></i></summary>
+            <div class="faq__body"><p>Зависит от набора программ и срока подготовки. На бесплатной диагностике соберём траекторию и посчитаем точную стоимость — со всеми скидками за пакет и рассрочкой по месяцам.</p></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ CTA / ФОРМА ══════════ -->
+    <section class="section apply" id="apply" data-trajectory>
+      <div class="container apply__grid">
+        <div class="apply__info">
+          <p class="eyebrow mono reveal">[ обратный отсчёт · место на борту ]</p>
+          <h2 class="section__title reveal">Займи своё место <span class="grad-gold">на орбите</span></h2>
+          <p class="section__lead reveal">Оставь заявку — вернёмся с планом. Дальше так:</p>
+          <ol class="apply__steps reveal">
+            <li><b>Отвечаем в течение дня</b><span>в Telegram, по-человечески</span></li>
+            <li><b>Бесплатная диагностика</b><span>уровень, цели, бюджет — 40 минут</span></li>
+            <li><b>Личная траектория</b><span>план подготовки с датами и целями</span></li>
+          </ol>
+          <div class="apply__contacts mono reveal">
+            <a class="contact-chip" data-tg-link href="#" target="_blank" rel="noopener">✈ Telegram</a>
+            <a class="contact-chip" data-wa-link href="#" target="_blank" rel="noopener">◍ WhatsApp</a>
+            <a class="contact-chip" data-ig-link href="#" target="_blank" rel="noopener">◎ Instagram</a>
+          </div>
+        </div>
+
+        <form class="apply__form glass reveal" id="applyForm" novalidate>
+          <h3 class="apply__form-title">Заявка на консультацию</h3>
+          <label class="field">
+            <span class="field__label mono">имя</span>
+            <input class="field__input" type="text" name="name" id="fName" placeholder="Азиз" autocomplete="name" required>
+          </label>
+          <label class="field">
+            <span class="field__label mono">telegram или телефон</span>
+            <input class="field__input" type="text" name="contact" id="fContact" placeholder="@username или +998 …" autocomplete="tel" required>
+          </label>
+          <label class="field">
+            <span class="field__label mono">интересует</span>
+            <select class="field__input field__select" name="program" id="fProgram">
+              <option value="SAT">SAT · Math &amp; R/W</option>
+              <option value="Математика">Математика</option>
+              <option value="Milliy Sertifikat">Milliy Sertifikat</option>
+              <option value="English">English · TOEFL / IELTS</option>
+              <option value="Application">Эссе и заявка</option>
+              <option value="Комплекс" selected>Комплексный трек «СНГ → США»</option>
+            </select>
+          </label>
+          <button class="btn btn--gold btn--full" type="submit" id="submitBtn">Отправить заявку</button>
+          <p class="apply__hint mono" id="formHint">нажимая кнопку, ты ни на что не подписываешься — просто начинаешь разговор</p>
+          <div class="apply__success" id="formSuccess" hidden>
+            <b>✦ Заявка собрана</b>
+            <p>Текст скопирован в буфер — отправь его нам в открывшемся Telegram, и мы ответим в течение дня.</p>
+          </div>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════════ ФУТЕР ══════════ -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <span class="logo__text">VOSKHOD</span>
+        <p>Онлайн-школа поступления в университеты США. Для тех, кто из СНГ и смотрит вверх.</p>
+      </div>
+      <nav class="footer__nav mono">
+        <a href="#trajectory">полётный план</a>
+        <a href="#programs">программы</a>
+        <a href="#results">результаты</a>
+        <a href="#apply">записаться</a>
+      </nav>
+      <p class="footer__note mono">
+        <span>© <span id="year">2026</span> VOSKHOD · собрано на орбите</span>
+        <span class="footer__status"><i></i>системы в норме</span>
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/cosmos.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

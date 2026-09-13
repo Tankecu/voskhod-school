@@ -10,7 +10,7 @@
 window.DB = (function () {
   'use strict';
 
-  var TABLES = ['users', 'groups', 'lessons', 'homework', 'payments', 'attempts', 'custom_tests'];
+  var TABLES = ['users', 'groups', 'lessons', 'homework', 'payments', 'attempts', 'custom_tests', 'mock_results'];
   var LS_KEY = 'vo-db-v2';
   var SESSION_KEY = 'vo-session';
 
@@ -19,7 +19,7 @@ window.DB = (function () {
   var initPromise = null;
 
   function emptyState() {
-    return { users: [], groups: [], lessons: [], homework: [], payments: [], attempts: [], custom_tests: [] };
+    return { users: [], groups: [], lessons: [], homework: [], payments: [], attempts: [], custom_tests: [], mock_results: [] };
   }
 
   /* ── camelCase ↔ snake_case (для Supabase) ── */
@@ -384,6 +384,18 @@ window.DB = (function () {
     allAttempts: function () {
       return state.attempts.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
     },
+
+    /* ── пробники SAT ── */
+
+    saveMockResult: function (r) { return adapter.upsert('mock_results', r); },
+    mockResultsBy: function (studentId) {
+      return state.mock_results.filter(function (r) { return r.studentId === studentId; })
+        .sort(function (a, b) { return (a.date + (a.id || '')).localeCompare(b.date + (b.id || '')); });
+    },
+    allMockResults: function () {
+      return state.mock_results.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+    },
+    mockResult: function (id) { return state.mock_results.find(function (r) { return r.id === id; }) || null; },
 
     addXp: function (studentId, amount) {
       var u = api.user(studentId);

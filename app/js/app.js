@@ -93,8 +93,8 @@
     return [
       { id: 'today', label: 'Сегодня', icon: 'home' },
       { id: 'schedule', label: 'Расписание', icon: 'calendar' },
-      { id: 'theory', label: 'Теория', icon: 'book' },
       { id: 'tests', label: 'Тесты', icon: 'clipboard' },
+      { id: 'mock', label: 'Пробник', icon: 'star' },
       { id: 'more', label: 'Ещё', icon: 'dots' },
     ];
   }
@@ -388,6 +388,20 @@
           '<div class="attempt__main"><b>' + esc(u2.name) + '</b><span>' + esc(t2 ? t2.title : a.testId) + ' · ' + UI.dayLabel(a.date) + '</span></div></div>';
       });
       if (recentA.length) html += '</div>';
+
+      /* последние пробники */
+      var recentM = DB.allMockResults().slice(-5).reverse();
+      if (recentM.length) {
+        html += '<p class="section-label"><span>последние пробники SAT</span></p><div class="stack">';
+        recentM.forEach(function (m) {
+          var u2 = DB.user(m.studentId);
+          if (!u2) return;
+          html += '<div class="attempt glass">' +
+            '<span class="attempt__score ' + (m.total >= 1200 ? 'attempt__score--good' : '') + '">' + m.total + '</span>' +
+            '<div class="attempt__main"><b>' + esc(u2.name) + '</b><span>SAT · RW ' + m.rw + ' · Math ' + m.math + ' · ' + UI.dayLabel(m.date) + '</span></div></div>';
+        });
+        html += '</div>';
+      }
     }
 
     shell(user, 'today', html);
@@ -849,13 +863,16 @@
     var lvl = DB.levelOf(xp);
     var pct = lvl.next ? Math.min(100, Math.round((xp - lvl.level.min) / (lvl.next.min - lvl.level.min) * 100)) : 100;
     var attempts = DB.attemptsBy(user.id);
+    var mocks = DB.mockResultsBy(user.id);
 
     var badges = [
       { on: attempts.length >= 1, icon: 'play', label: 'Первый запуск' },
       { on: (user.streak || 0) >= 3, icon: 'fire', label: 'Серия 3+' },
       { on: attempts.some(function (a) { return a.score === a.max; }), icon: 'star', label: '100% сгорание' },
       { on: attempts.length >= 5, icon: 'rocket', label: '5 тренировок' },
-      { on: DB.hwFor(user).filter(function (h) { return h.doneBy.indexOf(user.id) !== -1; }).length >= 3, icon: 'check', label: '3 сдано' },
+      { on: mocks.length >= 1, icon: 'clipboard', label: 'Первый пробник' },
+      { on: mocks.some(function (m) { return m.total >= 1200; }), icon: 'chart', label: 'SAT 1200+' },
+      { on: mocks.some(function (m) { return m.total >= 1400; }), icon: 'star', label: 'SAT 1400+' },
     ];
 
     var levels = DB.levels.map(function (l) {
@@ -882,7 +899,31 @@
       '<p class="section-label"><span>карта уровней</span></p>' +
       '<div class="glass card"><div class="levels-track" style="position:relative">' + levels + '</div></div>' +
       '<p class="section-label"><span>история попыток</span></p>' +
-      (history ? '<div class="stack">' + history + '</div>' : emptyBox('chart', 'Попыток пока нет', 'Пройди первый тест — и здесь появится телеметрия')));
+      (history ? '<div class="stack">' + history + '</div>' : emptyBox('chart', 'Попыток пока нет', 'Пройди первый тест — и здесь появится телеметрия')) +
+      '<p class="section-label"><span>динамика пробников SAT</span></p>' +
+      (mocks.length >= 2 ? mockTrendChart(mocks) : mocks.length === 1
+        ? emptyBox('chart', 'Нужен второй пробник', 'Сдай ещё один — и появится график динамики')
+        : emptyBox('chart', 'Пробников пока нет', 'Раздел «Пробник» ждёт тебя')));
+  }
+
+  function mockTrendChart(mocks) {
+    var w = 640, h = 160, pad = 30;
+    var pts = mocks.map(function (m, i) {
+      return {
+        x: pad + (i * (w - pad * 2)) / Math.max(1, mocks.length - 1),
+        y: h - pad - ((m.total - 400) / 1200) * (h - pad * 2),
+        total: m.total,
+        date: m.date,
+      };
+    });
+    var line = pts.map(function (p, i) { return (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); }).join(' ');
+    var dots = pts.map(function (p) {
+      return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="5" fill="#F5C24B"/>' +
+        '<text x="' + p.x.toFixed(1) + '" y="' + (p.y - 12).toFixed(1) + '" text-anchor="middle" fill="#EDEBFF" font-size="13" font-family="JetBrains Mono">' + p.total + '</text>';
+    }).join('');
+    return '<div class="glass card"><svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:auto">' +
+      '<line x1="' + pad + '" y1="' + (h - pad) + '" x2="' + (w - pad) + '" y2="' + (h - pad) + '" stroke="rgba(237,235,255,.15)"/>' +
+      '<path d="' + line + '" fill="none" stroke="#67E8F9" stroke-width="2.5"/>' + dots + '</svg></div>';
   }
 
   /* ═══════════ ОПЛАТЫ (ученик) ═══════════ */
@@ -934,6 +975,8 @@
     var hwDone = hw.filter(function (h) { return h.doneBy.indexOf(studentId) !== -1; }).length;
     var pays = DB.paymentsFor(studentId);
     var lastPay = pays[0];
+    var mocks = DB.mockResultsBy(studentId);
+    var lastMock = mocks[mocks.length - 1];
 
     var history = attempts.map(function (a) {
       var t = DB.test(a.testId);
@@ -949,7 +992,9 @@
       '<div class="glass orbit-wrap" style="margin-bottom:12px">' + UI.avatar(s, 'lg') +
         '<div class="orbit-wrap__info" style="flex:1"><b>' + esc(lvl.level.name) + '</b>' +
         '<span>' + (s.xp || 0) + ' XP · серия ' + (s.streak || 0) + ' · домашка ' + hwDone + '/' + hw.length +
-        (lastPay ? ' · оплата ' + esc(lastPay.month) + ': ' + (lastPay.status === 'paid' ? '✓' : 'ждётся') : '') + '</span></div></div>' +
+        (lastPay ? ' · оплата ' + esc(lastPay.month) + ': ' + (lastPay.status === 'paid' ? '✓' : 'ждётся') : '') + '</span>' +
+        (lastMock ? '<span style="display:block;color:var(--ion);font-size:13px">SAT пробник: <b>' + lastMock.total + '</b> (RW ' + lastMock.rw + ' · Math ' + lastMock.math + ')</span>' : '') +
+        '</div></div>' +
       '<p class="section-label"><span>попытки тестов</span></p>' +
       (history || emptyBox('clipboard', 'Ещё не решал', 'Как только ученик пройдёт тест, результаты появятся здесь')));
   }
@@ -1269,6 +1314,7 @@
     if (user.role === 'student') {
       items.push({ href: '#/homework', icon: 'clipboard', label: 'Домашние задания', sub: 'сдать и просмотреть' });
       items.push({ href: '#/progress', icon: 'chart', label: 'Прогресс', sub: 'XP, уровни, значки' });
+      items.push({ href: '#/theory', icon: 'book', label: 'Теория', sub: 'библиотека тем' });
       items.push({ href: '#/payments', icon: 'star', label: 'Мои оплаты', sub: 'история платежей' });
     }
     if (user.role === 'teacher') {
@@ -1386,6 +1432,7 @@
 
   function route(keepScroll) {
     Tests.cleanup();
+    Mock.cleanup();
     var hash = location.hash.replace(/^#\/?/, '') || '';
     var parts = hash.split('/');
     var name = parts[0] || '';
@@ -1430,6 +1477,12 @@
         if (parts[2]) renderTheoryTopic(user, parts[1], parts[2]);
         else if (parts[1]) renderTheoryCourse(user, parts[1]);
         else renderTheory(user);
+        break;
+      case 'mock':
+        if (user.role !== 'student') { location.hash = '#/today'; break; }
+        if (parts[1] === 'results') Mock.renderResultById(document.getElementById('page'), parts[2]);
+        else if (parts[1] === 'review') Mock.renderReview(document.getElementById('page'), parts[2]);
+        else Mock.renderIntro(document.getElementById('page'), user);
         break;
       case 'progress':
         if (user.role === 'student') renderProgress(user);

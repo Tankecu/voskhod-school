@@ -16,6 +16,9 @@ window.Mock = (function () {
   /* приближённая конверсия raw → scaled (College Board 400–1600) */
   var RW_TABLE = [200, 220, 240, 260, 280, 300, 320, 335, 350, 365, 380, 395, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 548, 556, 564, 572, 580, 590, 600, 608, 616, 624, 632, 640, 650, 660, 668, 676, 684, 692, 700, 708, 716, 724, 732, 740, 750, 760, 770, 780, 800];
   var MATH_TABLE = [200, 230, 260, 290, 320, 350, 370, 390, 410, 430, 450, 470, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 665, 670, 680, 690, 700, 710, 720, 730, 740, 750, 760, 770, 780, 790, 800];
+  /* easy Module 2 ограничивает потолок балла — как на настоящем SAT */
+  var RW_EASY_TABLE = RW_TABLE.map(function (v) { return Math.min(v, 730); });
+  var MATH_EASY_TABLE = MATH_TABLE.map(function (v) { return Math.min(v, 690); });
   var MODULE_TIME = { rw: [32, 32], math: [35, 35] };
 
   function moduleTime(sectionIdx, moduleIdx) {
@@ -75,7 +78,9 @@ window.Mock = (function () {
           ? '<div class="th-tip">⏸ Найден незавершённый пробник — осталось ' + Math.max(1, Math.round((draft.endsAt - Date.now()) / 60000)) + ' мин текущего модуля.</div>' +
             '<button class="btn btn--gold btn--full" id="mockResume">Продолжить пробник ▸</button>' +
             '<button class="btn btn--ghost btn--full" id="mockRestart">Начать заново</button>'
-          : '<button class="btn btn--gold btn--full" id="mockStart">' + ic('play') + ' Начать пробник ✦</button>') +
+          : '<button class="btn btn--gold btn--full" id="mockStart">' + ic('play') + ' Диагностический SAT #1 ✦</button>' +
+            '<button class="btn btn--ion btn--full" id="mockGenStart">' + ic('star') + ' Уникальный пробник — новый каждый раз</button>' +
+            '<p class="mono" style="font-size:10.5px;color:var(--dust-2);text-align:center">уникальный собирается из банка: адаптивный Module 2, вопросы не повторяются как в фиксированном</p>') +
         '<a class="btn btn--ghost btn--full" href="#/theory/sat-info/format">Как устроен цифровой SAT — 7 мин теории</a>' +
       '</div>' +
       (historyHtml
@@ -84,6 +89,8 @@ window.Mock = (function () {
 
     var startBtn = document.getElementById('mockStart');
     if (startBtn) startBtn.addEventListener('click', function () { startNew(root, user, mock.id); });
+    var genBtn = document.getElementById('mockGenStart');
+    if (genBtn) genBtn.addEventListener('click', function () { startGenerated(root, user); });
     var resumeBtn = document.getElementById('mockResume');
     if (resumeBtn) resumeBtn.addEventListener('click', function () { resumeDraft(root, user); });
     var restartBtn = document.getElementById('mockRestart');
@@ -96,22 +103,36 @@ window.Mock = (function () {
   /* ═══════════ СОСТОЯНИЕ ═══════════ */
 
   function blankAnswers(mock) {
+    function size(arr, i) { return arr[i] ? arr[i].length : 40; }
     return [
-      [new Array(mock.rw[0].length).fill(null), new Array(mock.rw[1].length).fill(null)],
-      [new Array(mock.math[0].length).fill(null), new Array(mock.math[1].length).fill(null)],
+      [new Array(size(mock.rw, 0)).fill(null), new Array(size(mock.rw, 1)).fill(null)],
+      [new Array(size(mock.math, 0)).fill(null), new Array(size(mock.math, 1)).fill(null)],
     ];
   }
   function blankFlags(mock) {
+    function size(arr, i) { return arr[i] ? arr[i].length : 40; }
     return [
-      [new Array(mock.rw[0].length).fill(false), new Array(mock.rw[1].length).fill(false)],
-      [new Array(mock.math[0].length).fill(false), new Array(mock.math[1].length).fill(false)],
+      [new Array(size(mock.rw, 0)).fill(false), new Array(size(mock.rw, 1)).fill(false)],
+      [new Array(size(mock.math, 0)).fill(false), new Array(size(mock.math, 1)).fill(false)],
     ];
+  }
+  /* точная подгонка длины под фактический модуль (адаптивные M2 строятся позже) */
+  function ensureSized(st, sectionIdx, moduleIdx) {
+    var need = (sectionIdx === 0 ? st.mock.rw : st.mock.math)[moduleIdx].length;
+    [st.answers, st.flags].forEach(function (struct) {
+      var arr = struct[sectionIdx][moduleIdx];
+      arr.length = need;
+      for (var i = 0; i < need; i++) {
+        if (arr[i] === undefined) arr[i] = struct === st.answers ? null : false;
+      }
+    });
   }
 
   function saveDraft(st) {
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
         uid: st.user.id, mockId: st.mock.id,
+        exam: st.mock.generated ? st.mock : null,
         sectionIdx: st.sectionIdx, moduleIdx: st.moduleIdx,
         answers: st.answers, flags: st.flags,
         startedAt: st.startedAt, endsAt: st.endsAt,
@@ -126,6 +147,15 @@ window.Mock = (function () {
   function startNew(root, user, mockId) {
     var mock = mockById(mockId);
     if (!mock) return;
+    beginExam(root, user, mock);
+  }
+
+  function startGenerated(root, user) {
+    var exam = window.MOCK_GEN.build();
+    beginExam(root, user, exam);
+  }
+
+  function beginExam(root, user, mock) {
     var st = {
       user: user, mock: mock,
       sectionIdx: 0, moduleIdx: 0, qIdx: 0,
@@ -141,7 +171,8 @@ window.Mock = (function () {
   function resumeDraft(root, user) {
     var d = readDraft();
     var mock = d && mockById(d.mockId);
-    if (!mock || d.uid !== user.id) { startNew(root, user, (examsList()[0] || {}).id); return; }
+    if (!mock && d && d.exam) mock = window.MOCK_GEN.attachBuilder(d.exam);
+    if (!mock || (d && d.uid !== user.id)) { startNew(root, user, (examsList()[0] || {}).id); return; }
     var st = {
       user: user, mock: mock,
       sectionIdx: d.sectionIdx, moduleIdx: d.moduleIdx, qIdx: d.qIdx,
@@ -168,6 +199,7 @@ window.Mock = (function () {
   }
 
   function renderModule(root, st) {
+    ensureSized(st, st.sectionIdx, st.moduleIdx);
     var qs = currentQuestions(st);
     var q = qs[st.qIdx];
     var sectionLabel = sectionName(st.sectionIdx);
@@ -301,6 +333,21 @@ window.Mock = (function () {
     if (byTime) toast('Время модуля вышло — ответы сохранены', 'warn');
     renderModuleEnd(root, st);
   }
+  function advance(root, st) { endModule(root, st, true); }
+
+  /* адаптив: строим Module 2 по результату Module 1 (как в Bluebook) */
+  function nextModule(root, st, sectionIdx, moduleIdx) {
+    if (st.mock.generated && st.mock.adaptive && moduleIdx === 1) {
+      var answered = st.answers[sectionIdx][0];
+      var qs = (sectionIdx === 0 ? st.mock.rw : st.mock.math)[0];
+      var correct = answered.reduce(function (acc, a, i) {
+        return acc + (a === qs[i].correct ? 1 : 0);
+      }, 0);
+      var pct = correct / qs.length;
+      st.mock.buildM2(sectionIdx, pct);
+    }
+    toModule(root, st, sectionIdx, moduleIdx);
+  }
 
   function renderModuleEnd(root, st) {
     saveDraft(st);
@@ -308,16 +355,23 @@ window.Mock = (function () {
     var lastOfExam = lastOfSection && st.sectionIdx === 1;
     if (lastOfExam) { finish(root, st); return; }
 
-    var nextLabel, nextDesc, action;
+    var action;
     if (st.sectionIdx === 0 && st.moduleIdx === 0) {
-      nextLabel = 'Module 2'; nextDesc = 'Reading & Writing · 27 вопросов · 32 минуты';
-      action = function () { toModule(root, st, 0, 1); };
+      action = function () { nextModule(root, st, 0, 1); };
     } else if (st.sectionIdx === 0) {
-      nextLabel = 'Перерыв'; nextDesc = '10 минут. Math начнётся после перерыва или по кнопке.';
       action = function () { toBreak(root, st); };
     } else {
-      nextLabel = 'Module 2'; nextDesc = 'Math · 22 вопроса · 35 минут';
-      action = function () { toModule(root, st, 1, 1); };
+      action = function () { nextModule(root, st, 1, 1); };
+    }
+
+    var goLabel = st.sectionIdx === 0 && st.moduleIdx === 1 ? 'К перерыву' : 'К Module ' + (st.moduleIdx + 2);
+    var hint = '';
+    if (st.mock.generated && st.moduleIdx === 0) {
+      var answered = st.answers[st.sectionIdx][0];
+      var qs = (st.sectionIdx === 0 ? st.mock.rw : st.mock.math)[0];
+      var correct = answered.reduce(function (acc, a, i) { return acc + (a === qs[i].correct ? 1 : 0); }, 0);
+      var hard = correct / qs.length >= 0.6;
+      hint = '<p class="mono" style="font-size:11.5px;color:' + (hard ? 'var(--solar)' : 'var(--ion)') + ';margin-bottom:16px">адаптив: ' + correct + '/' + qs.length + ' в Module 1 → Module 2 ' + (hard ? 'HARD (высокий потолок балла)' : 'EASY (как на настоящем SAT при результате ниже 60%)') + '</p>';
     }
 
     root.innerHTML =
@@ -325,7 +379,8 @@ window.Mock = (function () {
         '<p class="eyebrow mono" style="margin-bottom:14px">[ модуль завершён ]</p>' +
         '<div class="result__verdict">Модуль ' + (st.moduleIdx + 1) + ' сдан ✦</div>' +
         '<p class="result__sub">Ответы сохранены. Вернуться к вопросам нельзя — так же на настоящем SAT.</p>' +
-        '<button class="btn btn--gold" id="mockGo">' + ic('play') + ' ' + (st.sectionIdx === 0 && st.moduleIdx === 1 ? 'К перерыву' : 'К ' + nextLabel) + '</button>' +
+        hint +
+        '<button class="btn btn--gold" id="mockGo">' + ic('play') + ' ' + goLabel + '</button>' +
       '</div></div>';
     document.getElementById('mockGo').addEventListener('click', action);
   }
@@ -370,7 +425,8 @@ window.Mock = (function () {
     var rwRaw = 0, mathRaw = 0;
     st.mock.rw[0].concat(st.mock.rw[1]).forEach(function (q, i) { if (rwFlat[i] === q.correct) rwRaw++; });
     st.mock.math[0].concat(st.mock.math[1]).forEach(function (q, i) { if (mathFlat[i] === q.correct) mathRaw++; });
-    var rw = scale(RW_TABLE, rwRaw), math = scale(MATH_TABLE, mathRaw);
+    var rw = scale(st.mock.m2Variant && st.mock.m2Variant.rw === 'easy' ? RW_EASY_TABLE : RW_TABLE, rwRaw);
+    var math = scale(st.mock.m2Variant && st.mock.m2Variant.math === 'easy' ? MATH_EASY_TABLE : MATH_TABLE, mathRaw);
     var durSec = Math.round((Date.now() - st.startedAt) / 1000);
 
     var result = {
@@ -378,7 +434,7 @@ window.Mock = (function () {
       total: rw + math, rw: rw, math: math,
       rwRaw: rwRaw, mathRaw: mathRaw, durSec: durSec,
       date: DB.todayIso(),
-      answers: { rw: rwFlat, math: mathFlat },
+      answers: { rw: rwFlat, math: mathFlat, exam: st.mock.generated ? st.mock : undefined },
     };
 
     var before = DB.levelOf(st.user.xp || 0).index;
@@ -393,6 +449,7 @@ window.Mock = (function () {
 
   function renderScores(root, r, levelBefore, levelAfter) {
     var pct = Math.round((r.total - 400) / 1200 * 100);
+    var variant = (r.answers && r.answers.exam && r.answers.exam.m2Variant) || {};
     root.innerHTML =
       '<div class="mock-shell"><div class="result glass">' +
         '<p class="eyebrow mono" style="margin-bottom:14px">[ твой балл · приблизительная шкала ]</p>' +
@@ -403,6 +460,7 @@ window.Mock = (function () {
         '</div>' +
         '<div class="badges" style="justify-content:center;margin:18px 0">' +
           '<span class="badge badge--on">' + ic('star') + ' +50 XP</span>' +
+          (variant.rw || variant.math ? '<span class="badge">M2: ' + esc((variant.rw || '?') + ' / ' + (variant.math || '?')) + '</span>' : '') +
           (r.total >= 1400 ? '<span class="badge badge--on">' + ic('rocket') + ' 1400+ — уровень элиты!</span>'
             : r.total >= 1200 ? '<span class="badge badge--on">' + ic('rocket') + ' 1200+ — сильный результат</span>' : '') +
           (levelAfter > (levelBefore == null ? levelAfter : levelBefore)
@@ -432,7 +490,7 @@ window.Mock = (function () {
     var user = DB.currentUser();
     var r = DB.mockResult(resultId);
     if (!r || !user || r.studentId !== user.id) { location.hash = '#/mock'; return; }
-    var mock = mockById(r.mockId);
+    var mock = mockById(r.mockId) || (r.answers && r.answers.exam);
     if (!mock) { location.hash = '#/mock'; return; }
 
     var keys = ['A', 'B', 'C', 'D'];

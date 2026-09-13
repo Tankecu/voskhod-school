@@ -23,6 +23,29 @@
     chatId: '8889287294'
   };
 
+  /* заявки дублируются в общую базу — админ видит их в платформе */
+  var LEADS_DB = {
+    url: 'https://dtbwwqpjjplpzmscgblq.supabase.co',
+    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0Ynd3cXBqanBscHptc2NnYmxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMDQzMzgsImV4cCI6MjEwNDg4MDMzOH0.UFUYkGe3WCS1FibMOTH4-tQBu3ZW84pTgkwCicPn_G8'
+  };
+
+  function saveLeadToDb(name, contact, program) {
+    if (!LEADS_DB.url || !LEADS_DB.key) return Promise.reject(new Error('db off'));
+    var id = 'l' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+    return fetch(LEADS_DB.url + '/rest/v1/leads', {
+      method: 'POST',
+      headers: {
+        apikey: LEADS_DB.key,
+        Authorization: 'Bearer ' + LEADS_DB.key,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify([{ id: id, name: name, contact: contact, program: program, status: 'new', source: 'landing' }])
+    }).then(function (r) {
+      if (!r.ok) throw new Error('lead ' + r.status);
+    });
+  }
+
   function sendToTelegram(text) {
     if (!TELEGRAM_BOT.token || !TELEGRAM_BOT.chatId) return Promise.reject(new Error('bot not configured'));
     return fetch('https://api.telegram.org/bot' + TELEGRAM_BOT.token + '/sendMessage', {
@@ -504,17 +527,20 @@
         if (!viaBot) window.open(CONTACTS.telegram, '_blank', 'noopener');
       }
 
-      /* приоритет — бот: заявка прилетает владельцу в личку */
-      sendToTelegram(msg).then(function () {
-        showSuccess(true);
-      }).catch(function () {
-        /* запасной путь: скопировать и открыть чат */
-        copyText(plain).then(function () {
-          showSuccess(false);
-        }).catch(function () {
-          window.open(CONTACTS.telegram, '_blank', 'noopener');
-          hint.textContent = 'не удалось скопировать автоматически — напиши нам в Telegram, это займёт минуту';
-        });
+      /* приоритет — бот в личку + дубль в общую базу */
+      var bot = sendToTelegram(msg).catch(function () { return null; });
+      var db = saveLeadToDb(name, contact, program).catch(function () { return null; });
+      Promise.all([bot, db]).then(function (results) {
+        if (results[0] || results[1]) {
+          showSuccess(results[0] !== null);
+        } else {
+          copyText(plain).then(function () {
+            showSuccess(false);
+          }).catch(function () {
+            window.open(CONTACTS.telegram, '_blank', 'noopener');
+            hint.textContent = 'не удалось скопировать автоматически — напиши нам в Telegram, это займёт минуту';
+          });
+        }
       });
     });
   })();

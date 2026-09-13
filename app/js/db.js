@@ -10,7 +10,7 @@
 window.DB = (function () {
   'use strict';
 
-  var TABLES = ['users', 'groups', 'lessons', 'homework', 'payments', 'attempts', 'custom_tests', 'mock_results'];
+  var TABLES = ['users', 'groups', 'lessons', 'homework', 'payments', 'attempts', 'custom_tests', 'mock_results', 'leads'];
   var LS_KEY = 'vo-db-v2';
   var SESSION_KEY = 'vo-session';
 
@@ -19,7 +19,7 @@ window.DB = (function () {
   var initPromise = null;
 
   function emptyState() {
-    return { users: [], groups: [], lessons: [], homework: [], payments: [], attempts: [], custom_tests: [], mock_results: [] };
+    return { users: [], groups: [], lessons: [], homework: [], payments: [], attempts: [], custom_tests: [], mock_results: [], leads: [] };
   }
 
   /* ── camelCase ↔ snake_case (для Supabase) ── */
@@ -396,6 +396,22 @@ window.DB = (function () {
       return state.mock_results.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
     },
     mockResult: function (id) { return state.mock_results.find(function (r) { return r.id === id; }) || null; },
+
+    /* ── заявки с лендинга ── */
+
+    saveLead: function (l) { return adapter.upsert('leads', l); },
+    allLeads: function () {
+      return state.leads.slice().sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+    },
+    newLeadsCount: function () {
+      return state.leads.filter(function (l) { return l.status === 'new'; }).length;
+    },
+    setLeadStatus: function (id, status) {
+      var l = state.leads.find(function (x) { return x.id === id; });
+      if (l) { l.status = status; return adapter.upsert('leads', l); }
+      return Promise.resolve();
+    },
+    deleteLead: function (id) { return adapter.remove('leads', id); },
 
     addXp: function (studentId, amount) {
       var u = api.user(studentId);

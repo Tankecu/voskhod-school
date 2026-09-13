@@ -402,6 +402,18 @@
         });
         html += '</div>';
       }
+
+      /* заявки с лендинга */
+      var newLeads = DB.newLeadsCount();
+      html += '<p class="section-label"><span>заявки с сайта</span><a href="#/admin-leads">все →</a></p>';
+      var recentL = DB.allLeads().slice(0, 3);
+      html += recentL.length ? '<div class="stack">' : emptyBox('link', 'Заявок пока нет', 'Как только кто-то заполнит форму на сайте, она появится здесь');
+      recentL.forEach(function (l) {
+        html += '<div class="attempt glass">' +
+          '<span class="attempt__score ' + (l.status === 'new' ? 'attempt__score--bad' : 'attempt__score--good') + '">' + (l.status === 'new' ? 'новая' : 'обработана') + '</span>' +
+          '<div class="attempt__main"><b>' + esc(l.name) + '</b><span>' + esc(l.contact) + ' · ' + esc(l.program || '') + '</span></div></div>';
+      });
+      if (recentL.length) html += '</div>';
     }
 
     shell(user, 'today', html);
@@ -1307,6 +1319,125 @@
     draw();
   }
 
+  /* ═══════════ ЗАЯВКИ (админ) ═══════════ */
+
+  function renderAdminLeads(user) {
+    function draw() {
+      var leads = DB.allLeads();
+      var newCount = DB.newLeadsCount();
+      var rows = leads.map(function (l) {
+        return '<div class="attempt glass">' +
+          '<span class="attempt__score ' + (l.status === 'new' ? 'attempt__score--bad' : 'attempt__score--good') + '">' +
+          (l.status === 'new' ? 'новая' : 'обработана') + '</span>' +
+          '<div class="attempt__main"><b>' + esc(l.name) + ' · ' + esc(l.contact) + '</b>' +
+          '<span>' + esc(l.program || '—') + ' · ' + UI.dayLabel((l.createdAt || '').slice(0, 10) || DB.todayIso()) + '</span></div>' +
+          '<div style="display:flex;gap:8px">' +
+          '<button class="btn btn--ghost btn--sm" data-toggle="' + l.id + '">' + (l.status === 'new' ? '✓ Обработана' : '↺ Вернуть') + '</button>' +
+          '<button class="icon-btn icon-btn--danger" data-dellead="' + l.id + '" aria-label="Удалить">' + ic('trash') + '</button>' +
+          '</div></div>';
+      }).join('');
+
+      shell(user, 'admin-leads',
+        '<div class="page-head"><p class="eyebrow">[ заявки · с лендинга ]</p><h1>Заявки</h1>' +
+        '<p>Всего: ' + leads.length + ' · новых: <b style="color:var(--solar)">' + newCount + '</b></p></div>' +
+        (rows || emptyBox('link', 'Заявок пока нет', 'Форма на лендинге складывает их прямо сюда')));
+
+      app.querySelectorAll('[data-toggle]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var lead = DB.allLeads().find(function (x) { return x.id === b.dataset.toggle; });
+          DB.setLeadStatus(b.dataset.toggle, lead && lead.status === 'new' ? 'done' : 'new').then(draw);
+        });
+      });
+      app.querySelectorAll('[data-dellead]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          DB.deleteLead(b.dataset.dellead).then(function () { toast('Заявка удалена', 'warn'); draw(); });
+        });
+      });
+    }
+    draw();
+  }
+
+  /* ═══════════ РЕЙТИНГ ГРУПП ═══════════ */
+
+  function renderLeaderboard(user, scope) {
+    var allStudents = DB.allUsers().filter(function (u) { return u.role === 'student'; });
+    var groups = DB.allGroups();
+
+    function groupNameOf(studentId) {
+      var g = groups.find(function (x) { return x.studentIds.indexOf(studentId) !== -1; });
+      return g ? g.name : '—';
+    }
+
+    var myGroups = DB.groupsFor(user);
+    var groupStudents = [];
+    myGroups.forEach(function (g) {
+      g.studentIds.forEach(function (sid) {
+        var s = DB.user(sid);
+        if (s && groupStudents.indexOf(s) === -1) groupStudents.push(s);
+      });
+    });
+    /* у ученика без группы дефолт — вся школа */
+    if (!scope) scope = (user.role === 'student' && groupStudents.length) ? 'group' : 'school';
+
+    function drawRows(students) {
+      var sorted = students.slice().sort(function (a, b) { return (b.xp || 0) - (a.xp || 0); });
+      var medals = ['🥇', '🥈', '🥉'];
+      if (!sorted.length) return emptyBox('users', 'Пока пусто', 'Как только появятся ученики с XP, здесь будет рейтинг');
+      return sorted.map(function (s, i) {
+        var lvl = DB.levelOf(s.xp || 0);
+        return '<div class="student-row glass' + (s.id === user.id ? ' side__item--on' : '') + '" style="margin-bottom:8px;padding:13px 16px">' +
+          '<b class="mono" style="width:34px;text-align:center;font-size:15px;color:' + (i < 3 ? 'var(--solar)' : 'var(--dust-2)') + '">' + (medals[i] || (i + 1)) + '</b>' +
+          UI.avatar(s, 'md') +
+          '<div class="student-row__main"><b>' + esc(s.name) + '</b><span>' + esc(lvl.level.name) + ' · ' + groupNameOf(s.id) + '</span></div>' +
+          '<div class="student-row__stats"><b>' + (s.xp || 0) + ' XP</b><span>серия ' + (s.streak || 0) + '</span></div>' +
+          '</div>';
+      }).join('');
+    }
+
+    var myGroups = DB.groupsFor(user);
+    var groupStudents = [];
+    myGroups.forEach(function (g) {
+      g.studentIds.forEach(function (sid) {
+        var s = DB.user(sid);
+        if (s && groupStudents.indexOf(s) === -1) groupStudents.push(s);
+      });
+    });
+
+    var tabs = '';
+    if (user.role === 'student' && groupStudents.length) {
+      tabs = '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+        '<button class="chip' + (scope === 'group' ? ' chip--ion' : '') + '" data-scope="group" style="cursor:pointer">Моя группа</button>' +
+        '<button class="chip' + (scope === 'school' ? ' chip--ion' : '') + '" data-scope="school" style="cursor:pointer">Вся школа</button></div>';
+    } else if (user.role === 'student') {
+      tabs = '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+        '<button class="chip chip--ion" data-scope="school" style="cursor:pointer">Вся школа</button></div>';
+    } else {
+      tabs = '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">' +
+        '<button class="chip' + (scope === 'school' ? ' chip--ion' : '') + '" data-scope="school" style="cursor:pointer">Вся школа</button>' +
+        myGroups.map(function (g) {
+          return '<button class="chip' + (scope === 'g:' + g.id ? ' chip--ion' : '') + '" data-scope="g:' + g.id + '" style="cursor:pointer">' + esc(g.name) + '</button>';
+        }).join('') + '</div>';
+    }
+
+    var rows;
+    if (scope === 'school') rows = drawRows(allStudents);
+    else if (scope === 'group') rows = drawRows(groupStudents);
+    else {
+      var gid = scope.slice(2);
+      var g = DB.group(gid);
+      rows = drawRows(g ? g.studentIds.map(function (sid) { return DB.user(sid); }).filter(Boolean) : []);
+    }
+
+    shell(user, 'leaderboard',
+      '<div class="page-head"><p class="eyebrow">[ рейтинг · XP ]</p><h1>Рейтинг</h1>' +
+      '<p>Кто больше всех летает: XP за тесты, домашку и пробники</p></div>' + tabs +
+      '<div>' + rows + '</div>');
+
+    app.querySelectorAll('[data-scope]').forEach(function (b) {
+      b.addEventListener('click', function () { renderLeaderboard(user, b.dataset.scope); });
+    });
+  }
+
   /* ═══════════ ЕЩЁ / НАСТРОЙКИ ═══════════ */
 
   function moreItems(user) {
@@ -1314,14 +1445,18 @@
     if (user.role === 'student') {
       items.push({ href: '#/homework', icon: 'clipboard', label: 'Домашние задания', sub: 'сдать и просмотреть' });
       items.push({ href: '#/progress', icon: 'chart', label: 'Прогресс', sub: 'XP, уровни, значки' });
+      items.push({ href: '#/leaderboard', icon: 'users', label: 'Рейтинг', sub: 'кто выше в группе' });
       items.push({ href: '#/theory', icon: 'book', label: 'Теория', sub: 'библиотека тем' });
       items.push({ href: '#/payments', icon: 'star', label: 'Мои оплаты', sub: 'история платежей' });
     }
     if (user.role === 'teacher') {
+      items.push({ href: '#/leaderboard', icon: 'users', label: 'Рейтинг', sub: 'XP по группам и школе' });
       items.push({ href: '#/builder', icon: 'edit', label: 'Конструктор тестов', sub: 'создать тренировку' });
       items.push({ href: '#/theory', icon: 'book', label: 'Теория', sub: 'библиотека тем' });
     }
     if (user.role === 'admin') {
+      items.push({ href: '#/admin-leads', icon: 'link', label: 'Заявки', sub: DB.newLeadsCount() ? DB.newLeadsCount() + ' новых' : 'с лендинга' });
+      items.push({ href: '#/leaderboard', icon: 'users', label: 'Рейтинг', sub: 'XP по группам и школе' });
       items.push({ href: '#/admin-groups', icon: 'grid', label: 'Группы', sub: 'экипажи школы' });
       items.push({ href: '#/tests', icon: 'clipboard', label: 'Тесты', sub: 'банк и конструктор' });
       items.push({ href: '#/theory', icon: 'book', label: 'Теория', sub: 'библиотека тем' });
@@ -1497,6 +1632,11 @@
       case 'admin-users': renderAdminUsers(user); break;
       case 'admin-groups': renderAdminGroups(user); break;
       case 'admin-payments': renderAdminPayments(user); break;
+      case 'admin-leads':
+        if (user.role !== 'admin') { location.hash = '#/today'; break; }
+        renderAdminLeads(user);
+        break;
+      case 'leaderboard': renderLeaderboard(user); break;
       case 'more': renderMore(user); break;
       case 'settings': renderSettings(user); break;
       default: renderToday(user);

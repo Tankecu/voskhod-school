@@ -11,10 +11,28 @@
 
   /* ── контакты: поменять здесь в одном месте ──────────────── */
   var CONTACTS = {
-    telegram: 'https://t.me/voskhod_placeholder',
-    whatsapp: 'https://wa.me/998000000000',
-    instagram: 'https://instagram.com/voskhod.placeholder'
+    telegram: 'https://t.me/Tankecu'
   };
+
+  /* ── Telegram-бот: пишет владельцу, когда приходит заявка ──
+     1. Создай бота у @BotFather → получи token
+     2. Напиши боту любое сообщение в Telegram
+     3. Впиши token и chatId ниже — заявки будут прилетать в личку */
+  var TELEGRAM_BOT = {
+    token: '',
+    chatId: ''
+  };
+
+  function sendToTelegram(text) {
+    if (!TELEGRAM_BOT.token || !TELEGRAM_BOT.chatId) return Promise.reject(new Error('bot not configured'));
+    return fetch('https://api.telegram.org/bot' + TELEGRAM_BOT.token + '/sendMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_BOT.chatId, text: text, parse_mode: 'HTML' })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('telegram ' + r.status);
+    });
+  }
 
   /* ═══════════ boot-секвенция ═══════════ */
 
@@ -467,18 +485,32 @@
         return;
       }
 
-      var msg = 'Заявка VOSKHOD ✦\nИмя: ' + name + '\nКонтакт: ' + contact + '\nНаправление: ' + program;
+      var msg = '🚀 <b>Новая заявка VOSKHOD</b>\n' +
+        '👤 Имя: <b>' + name.replace(/</g, '&lt;') + '</b>\n' +
+        '✈ Контакт: <b>' + contact.replace(/</g, '&lt;') + '</b>\n' +
+        '◈ Направление: ' + program;
 
-      copyText(msg).then(function () {
+      var plain = 'Заявка VOSKHOD ✦\nИмя: ' + name + '\nКонтакт: ' + contact + '\nНаправление: ' + program;
+
+      function showSuccess(viaBot) {
         success.hidden = false;
         success.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'nearest' });
         hint.hidden = true;
-        btn.textContent = 'Открыть Telegram ещё раз';
-        window.open(CONTACTS.telegram, '_blank', 'noopener');
+        btn.textContent = viaBot ? 'Отправить ещё одну заявку' : 'Открыть Telegram ещё раз';
+        if (!viaBot) window.open(CONTACTS.telegram, '_blank', 'noopener');
+      }
+
+      /* приоритет — бот: заявка прилетает владельцу в личку */
+      sendToTelegram(msg).then(function () {
+        showSuccess(true);
       }).catch(function () {
-        /* буфер недоступен — просто открываем Telegram */
-        window.open(CONTACTS.telegram, '_blank', 'noopener');
-        hint.textContent = 'не удалось скопировать автоматически — напиши нам в Telegram, это займёт минуту';
+        /* запасной путь: скопировать и открыть чат */
+        copyText(plain).then(function () {
+          showSuccess(false);
+        }).catch(function () {
+          window.open(CONTACTS.telegram, '_blank', 'noopener');
+          hint.textContent = 'не удалось скопировать автоматически — напиши нам в Telegram, это займёт минуту';
+        });
       });
     });
   })();

@@ -193,6 +193,7 @@ body::before {
 
 .login {
   min-height: 100dvh;
+  flex: 1;
   display: grid;
   place-content: center;
   padding: 32px 20px;

@@ -19,8 +19,8 @@
      2. Напиши боту любое сообщение в Telegram
      3. Впиши token и chatId ниже — заявки будут прилетать в личку */
   var TELEGRAM_BOT = {
-    token: '',
-    chatId: ''
+    token: '8956908397:AAE4fyONgQuwloxPvST8eepkU8m4vuQaA04',
+    chatId: '8889287294'
   };
 
   function sendToTelegram(text) {

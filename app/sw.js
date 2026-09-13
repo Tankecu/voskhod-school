@@ -1,13 +1,16 @@
 /* VOSKHOD Orbit — service worker: офлайн-кэш приложения */
-const VERSION = 'voskhod-orbit-v1';
+const VERSION = 'voskhod-orbit-v2';
 const PRECACHE = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/app.css',
   './js/cosmos.js',
+  './js/config.js',
   './js/db.js',
   './js/ui.js',
+  './js/tests-bank.js',
+  './js/theory.js',
   './js/tests.js',
   './js/app.js',
   './icons/icon-192.png',

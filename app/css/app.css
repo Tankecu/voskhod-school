@@ -194,7 +194,7 @@ body::before {
 .login {
   min-height: 100dvh;
   display: grid;
-  place-items: center;
+  place-content: center;
   padding: 32px 20px;
 }
 .login__box { width: min(480px, 100%); text-align: center; }
@@ -844,6 +844,65 @@ select.input option { background: var(--void-2); }
 /* скрытая на десктопе шапка не нужна */
 .side { display: none; }
 @media (min-width: 1000px) { .side { display: flex; } }
+
+/* ── теория ───────────────────────────────────────────────── */
+
+.theory-body { font-size: 15.5px; line-height: 1.7; }
+.theory-body p { margin-bottom: 12px; color: var(--stardust); }
+.theory-body h4 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  margin: 20px 0 10px;
+  color: var(--ion);
+}
+.theory-body ul, .theory-body ol { padding-left: 20px; margin-bottom: 12px; display: grid; gap: 6px; }
+.theory-body li { color: var(--dust); }
+.theory-body b { color: var(--stardust); }
+.theory-body i { color: var(--solar); font-style: normal; }
+.th-formula {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  padding: 13px 16px;
+  border-radius: 13px;
+  background: rgba(103, 232, 249, 0.07);
+  border: 1px solid rgba(103, 232, 249, 0.25);
+  color: var(--ion);
+  margin: 12px 0;
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+.th-ex {
+  padding: 13px 16px;
+  border-radius: 13px;
+  border-left: 3px solid var(--solar);
+  background: rgba(245, 194, 75, 0.06);
+  color: var(--dust);
+  margin: 12px 0;
+  font-size: 14.5px;
+}
+.th-ex b { color: var(--solar); font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; }
+.th-tip {
+  padding: 13px 16px;
+  border-radius: 13px;
+  border-left: 3px solid var(--nebula);
+  background: rgba(139, 92, 246, 0.08);
+  color: var(--dust);
+  margin: 12px 0;
+  font-size: 14.5px;
+}
+.th-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13.5px; }
+.th-table th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ion);
+  border-bottom: 1px solid var(--line);
+  padding: 8px 10px 8px 0;
+}
+.th-table td { padding: 8px 10px 8px 0; border-bottom: 1px solid rgba(237, 235, 255, 0.05); color: var(--dust); }
 
 /* ── reduce motion ────────────────────────────────────────── */
 

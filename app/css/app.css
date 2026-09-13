@@ -1005,7 +1005,11 @@ select.input option { background: var(--void-2); }
   background: rgba(12, 8, 32, 0.97);
   border: 1px solid rgba(103, 232, 249, 0.35);
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6);
-  animation: modalIn 0.3s var(--ease-out) both;
+  animation: calcIn 0.3s var(--ease-out) both;
+}
+@keyframes calcIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
 }
 .mock-calc__disp {
   font-family: var(--font-mono);
@@ -1071,6 +1075,79 @@ select.input option { background: var(--void-2); }
   color: var(--nebula);
   letter-spacing: 0.1em;
   margin-bottom: 6px;
+}
+
+/* ── мобильная разгрузка и удобство ───────────────────────── */
+
+@media (max-width: 768px) {
+  /* backdrop-filter на десятках карточек — главный тормоз слабых GPU.
+     На мобильных заменяем плотной заливкой: выглядит так же, летает быстрее */
+  .glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: linear-gradient(160deg, rgba(30, 22, 60, 0.92), rgba(16, 11, 40, 0.96));
+  }
+  .topbar, .tabbar { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .tabbar { background: rgba(6, 4, 15, 0.94); }
+  /* меньше тени и трансформаций — меньше перерисовки */
+  .card:hover, .lesson:hover, .btn:hover { transform: none; }
+  .btn--gold, .btn--ion { box-shadow: none; }
+}
+
+/* ── режим экзамена: ничего лишнего на экране ─────────────── */
+
+body.exam-mode .tabbar,
+body.exam-mode .topbar,
+body.exam-mode .side { display: none !important; }
+body.exam-mode .page { padding-bottom: 96px; }
+body.exam-mode #cosmos { opacity: 0.45; }
+
+/* навигация вопроса всегда под рукой */
+.mock-nav {
+  position: sticky;
+  bottom: 10px;
+  z-index: 70;
+  margin-top: 14px;
+  padding: 8px;
+  border-radius: 16px;
+  background: rgba(12, 8, 32, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+}
+.mock-nav .btn { flex: 1; }
+
+.mock-top__exit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--dust);
+  border: 1px solid var(--line);
+  background: rgba(237, 235, 255, 0.04);
+  margin-right: 2px;
+}
+.mock-top__exit:hover { color: var(--red); border-color: rgba(245, 140, 140, 0.5); }
+
+/* калькулятор: на телефоне — нижняя шторка на всю ширину */
+@media (max-width: 560px) {
+  .mock-calc {
+    left: 10px;
+    right: 10px;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+  }
+}
+
+/* таблицы в теории — горизонтальный скролл вместо разрыва */
+.theory-body .th-table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 /* ── reduce motion ────────────────────────────────────────── */

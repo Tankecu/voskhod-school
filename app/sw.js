@@ -1,5 +1,5 @@
 /* VOSKHOD Orbit — service worker: офлайн-кэш приложения */
-const VERSION = 'voskhod-orbit-v6';
+const VERSION = 'voskhod-orbit-v7';
 const PRECACHE = [
   './',
   './index.html',

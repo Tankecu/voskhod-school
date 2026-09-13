@@ -41,11 +41,17 @@ window.Mock = (function () {
   function cleanup() {
     if (timerId) { clearInterval(timerId); timerId = null; }
   }
+  /* полный сброс при уходе из экзамена (route/intro/scores) */
+  function teardown() {
+    cleanup();
+    document.body.classList.remove('exam-mode');
+    window.__cosmosFrozen = false;
+  }
 
   /* ═══════════ ИНТРО / СПИСОК ═══════════ */
 
   function renderIntro(root, user) {
-    cleanup();
+    teardown();
     var draft = readDraft();
     var mock = examsList()[0];
     var hasValidDraft = draft && draft.uid === user.id;
@@ -200,7 +206,12 @@ window.Mock = (function () {
 
   function renderModule(root, st) {
     ensureSized(st, st.sectionIdx, st.moduleIdx);
+    /* прибираем оверлеи, оставшиеся от предыдущего вопроса */
+    document.querySelectorAll('body > .mock-overlay').forEach(function (el) { el.remove(); });
     var qs = currentQuestions(st);
+    /* режим экзамена: убираем шапку/таббар/меню, замораживаем космос */
+    document.body.classList.add('exam-mode');
+    window.__cosmosFrozen = true;
     var q = qs[st.qIdx];
     var sectionLabel = sectionName(st.sectionIdx);
     var isMathSec = isMath(st.sectionIdx);
@@ -208,6 +219,7 @@ window.Mock = (function () {
     root.innerHTML =
       '<div class="mock-shell">' +
         '<div class="mock-top">' +
+          '<button class="mock-top__exit" id="mockExit" aria-label="Сохранить и выйти">' + ic('x') + '</button>' +
           '<div class="mock-top__title"><b>' + esc(sectionLabel) + '</b><span>Module ' + (st.moduleIdx + 1) + ' · вопрос ' + (st.qIdx + 1) + ' из ' + qs.length + '</span></div>' +
           '<div class="runner__timer" id="mockTimer"><span id="mockTimerVal">–:––</span></div>' +
         '</div>' +
@@ -257,6 +269,23 @@ window.Mock = (function () {
   }
 
   function bindModule(root, st) {
+    document.getElementById('mockExit').addEventListener('click', function () {
+      var m = UI.modal(
+        '<div class="modal__head"><h3>Выйти из пробника?</h3><button class="icon-btn" data-close>' + ic('x') + '</button></div>' +
+        '<p style="color:var(--dust);font-size:14px">Прогресс сохранён — продолжишь с этого же места, когда вернёшься.</p>' +
+        '<div class="modal__foot"><button class="btn btn--ghost btn--full" data-close>Остаться</button>' +
+        '<button class="btn btn--danger btn--full" id="exitYes">Сохранить и выйти</button></div>');
+      m.el.querySelector('#exitYes').addEventListener('click', function () {
+        m.close();
+        teardown();
+        if (location.hash === '#/mock') {
+          /* хэш не менялся — route не сработает, рисуем интро сами */
+          renderIntro(root, st.user);
+        } else {
+          location.hash = '#/mock';
+        }
+      });
+    });
     document.getElementById('mockNext').addEventListener('click', function () {
       var qs = currentQuestions(st);
       if (st.qIdx < qs.length - 1) { st.qIdx++; saveDraft(st); renderModule(root, st); }
@@ -289,26 +318,28 @@ window.Mock = (function () {
     }).join('');
     var answered = answers.filter(function (a) { return a !== null; }).length;
 
-    var ov = document.getElementById('mockOverlays');
+    var ov = document.createElement('div');
+    ov.className = 'mock-overlay';
     ov.innerHTML =
-      '<div class="mock-overlay"><div class="mock-sheet">' +
+      '<div class="mock-sheet">' +
         '<div class="modal__head"><h3>' + esc(sectionName(st.sectionIdx)) + ' · Module ' + (st.moduleIdx + 1) + '</h3>' +
         '<button class="icon-btn" id="gridClose">' + ic('x') + '</button></div>' +
         '<p class="mono" style="font-size:11px;color:var(--dust);margin-bottom:12px">отвечено ' + answered + ' из ' + qs.length + ' · жёлтая рамка — с флажком</p>' +
         '<div class="mock-grid">' + cells + '</div>' +
         '<button class="btn btn--gold btn--full" id="gridDone" style="margin-top:16px">К вопросам</button>' +
-      '</div></div>';
+      '</div>';
+    document.body.appendChild(ov);
 
     ov.querySelectorAll('[data-jump]').forEach(function (b) {
       b.addEventListener('click', function () {
         st.qIdx = +b.dataset.jump;
         saveDraft(st);
-        ov.innerHTML = '';
+        ov.remove();
         renderModule(root, st);
       });
     });
-    document.getElementById('gridClose').addEventListener('click', function () { ov.innerHTML = ''; });
-    document.getElementById('gridDone').addEventListener('click', function () { ov.innerHTML = ''; });
+    document.getElementById('gridClose').addEventListener('click', function () { ov.remove(); });
+    document.getElementById('gridDone').addEventListener('click', function () { ov.remove(); });
   }
 
   /* ═══════════ ТАЙМЕР ═══════════ */
@@ -448,6 +479,7 @@ window.Mock = (function () {
   /* ═══════════ ЭКРАН БАЛЛОВ ═══════════ */
 
   function renderScores(root, r, levelBefore, levelAfter) {
+    teardown();
     var pct = Math.round((r.total - 400) / 1200 * 100);
     var variant = (r.answers && r.answers.exam && r.answers.exam.m2Variant) || {};
     root.innerHTML =
@@ -560,7 +592,7 @@ window.Mock = (function () {
           }).join('') + '</div>';
         }).join('') +
       '</div>';
-    document.querySelector('.mock-shell').appendChild(panel);
+    document.body.appendChild(panel);
 
     var expr = '';
     var ans = '0';
@@ -673,7 +705,8 @@ window.Mock = (function () {
       if (!r) { location.hash = '#/mock'; return; }
       renderScores(root, r, null, null);
     },
-    cleanup: cleanup,
+    cleanup: teardown,
+    teardown: teardown,
     convertForTests: { rw: RW_TABLE, math: MATH_TABLE, scale: scale },
   };
 })();

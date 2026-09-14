@@ -32,7 +32,8 @@ window.BANK_MATH = (function () {
     }
     var bump = 1;
     while (distractors.length < 3) {
-      var alt = String(Number(correctNum) + bump);
+      var num = Number(correctNum);
+      var alt = isNaN(num) ? correct + ' (вариант ' + (distractors.length + 1) + ')' : String(num + bump);
       if (!seen[alt]) { seen[alt] = true; distractors.push(alt); }
       bump = bump > 0 ? -(bump + 1) : -(bump - 1); /* +1, −2, +3… */
     }
@@ -41,13 +42,13 @@ window.BANK_MATH = (function () {
   }
 
   var G = [];
-  function reg(domain, difficulties, make) {
-    G.push({ domain: domain, difficulties: difficulties, make: make });
+  function reg(topic, domain, difficulties, make) {
+    G.push({ topic: topic, domain: domain, difficulties: difficulties, make: make });
   }
 
   /* ═══════════ ALGEBRA ═══════════ */
 
-  reg('Algebra', ['easy'], function () {
+  reg('a1', 'Algebra', ['easy'], function () {
     var a = ri(2, 9), x = ri(2, 12), b = ri(1, 20), c = a * x + b;
     var m = mc(x, [x + a, x - 1, c - b - a + 1]);
     return {
@@ -57,7 +58,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['medium'], function () {
+  reg('a1', 'Algebra', ['medium'], function () {
     var x = ri(2, 9), a = ri(2, 5), b = ri(1, 6), d = pick([1, 2, 3]);
     var c = a; /* a(x+b) = c(x+d) подбирается: c = a, тогда xb = a d + c d − ... */
     /* строим от ответа: a(x+b) = k(x+d) → k(x+d) = a x + a b → k = a, ab = a d? нет.
@@ -71,7 +72,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['easy'], function () {
+  reg('a5', 'Algebra', ['easy'], function () {
     var x1 = ri(0, 4), y1 = ri(0, 8), dx = ri(1, 4), m = ri(1, 5);
     var x2 = x1 + dx, y2 = y1 + m * dx;
     var m2 = mc(m, [m + 1, dx, m * dx, -m]);
@@ -82,7 +83,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['medium'], function () {
+  reg('a3', 'Algebra', ['medium'], function () {
     var x = ri(2, 8), y = ri(2, 9), a = ri(2, 4), b = ri(1, 5);
     /* x + y = S, x − y = D */
     var S = x + y, D = x - y;
@@ -94,7 +95,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['easy'], function () {
+  reg('a4', 'Algebra', ['easy'], function () {
     var fee = ri(2, 9) * 5, per = ri(4, 15), m = ri(2, 10);
     var total = fee + per * m;
     var mm = mc(m, [m + 1, m - 1, Math.round(total / fee)]);
@@ -105,7 +106,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['easy'], function () {
+  reg('a4', 'Algebra', ['easy'], function () {
     var m = ri(2, 8), b = ri(1, 12), x = ri(1, 6);
     var y = m * x + b;
     var mm = mc(y, [y + m, b, m * x, y - b]);
@@ -116,7 +117,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['hard'], function () {
+  reg('a5', 'Algebra', ['hard'], function () {
     var m1 = ri(2, 6), x1 = ri(0, 3), y1 = ri(0, 6);
     var perp = -1 / m1, b = y1 - perp * x1;
     var bFrac = (b % 1 === 0) ? String(b) : b.toFixed(2);
@@ -128,7 +129,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['hard'], function () {
+  reg('a3', 'Algebra', ['hard'], function () {
     var k = ri(2, 9);
     var mm = mc('for all values of x', ['for exactly one value of x', 'for no values of x', 'only when k = 0']);
     return {
@@ -138,7 +139,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['medium'], function () {
+  reg('a2', 'Algebra', ['medium'], function () {
     var m = ri(2, 8), t = ri(2, 9), b = ri(1, 12);
     var mm = mc('x > ' + t, ['x < ' + t, 'x > ' + (t + 2), 'x < ' + (t - 2)]);
     return {
@@ -148,7 +149,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['medium'], function () {
+  reg('b5', 'Algebra', ['medium'], function () {
     var c = ri(2, 9), d = ri(2, 9);
     var mm = mc(2 * c, [c + d, 2 * d, c]);
     return {
@@ -158,7 +159,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['easy'], function () {
+  reg('c2', 'Algebra', ['easy'], function () {
     var rate = ri(3, 15), n = ri(4, 12), total = rate * n;
     var mm = mc(n, [total, total / rate + 1, n + 2]);
     return {
@@ -168,7 +169,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['hard'], function () {
+  reg('a1', 'Algebra', ['hard'], function () {
     var a = ri(2, 5), b = ri(2, 8), x = ri(2, 6);
     var y = a * x - b;
     var mm = mc(y, [a * x + b, y + 1, b]);
@@ -181,7 +182,7 @@ window.BANK_MATH = (function () {
 
   /* ═══════════ ADVANCED MATH ═══════════ */
 
-  reg('Advanced Math', ['medium'], function () {
+  reg('b2', 'Advanced Math', ['medium'], function () {
     var r1 = ri(1, 6), r2 = ri(1, 6) * pick([1, -1]);
     var b = -(r1 + r2), c = r1 * r2;
     var mm = mc('x = ' + r1 + ' and x = ' + r2, ['x = ' + (-r1) + ' and x = ' + (-r2), 'x = ' + r1 + ' and x = ' + (-r2), 'x = ' + b + ' and x = ' + c]);
@@ -192,7 +193,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Advanced Math', ['medium'], function () {
+  reg('b2', 'Advanced Math', ['medium'], function () {
     var h = ri(1, 6), k = -ri(1, 9);
     var b = -2 * h, c = h * h + k;
     var mm = mc('(' + (-h) + ', ' + k + ')', ['(' + h + ', ' + k + ')', '(' + (-h) + ', ' + (-k) + ')', '(' + h + ', ' + (-k) + ')']);
@@ -203,7 +204,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Advanced Math', ['easy'], function () {
+  reg('b2', 'Advanced Math', ['easy'], function () {
     var h = ri(1, 7), k = ri(-9, -1);
     var mm = mc('(' + (-h) + ', ' + k + ')', ['(' + h + ', ' + k + ')', '(' + (-h) + ', ' + (-k) + ')', '(0, ' + k + ')']);
     return {
@@ -213,8 +214,25 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Advanced Math', ['medium'], function () {
+  reg('b3', 'Advanced Math', ['easy'], function () {
+    var h = ri(1, 5), k = ri(1, 6);
+    while (k === h) k = ri(1, 6);
+    var right = 'на ' + h + ' вправо и на ' + k + ' вверх';
+    var mm = mc(right, [
+      'на ' + h + ' влево и на ' + k + ' вверх',
+      'на ' + h + ' вправо и на ' + k + ' вниз',
+      'на ' + k + ' вправо и на ' + h + ' вверх',
+    ]);
+    return {
+      q: 'График y = x² сдвинули так, что получился y = (x − ' + h + ')² + ' + k + '. Как сдвинули график?<br><br>Which choice describes the transformation?',
+      options: mm.options, correct: mm.correct,
+      explain: 'Vertex form (x − h)² + k: вправо на h, вверх на k → ' + right + '.',
+    };
+  });
+
+  reg('b4', 'Advanced Math', ['medium'], function () {
     var e1 = ri(4, 8), e2 = ri(1, e1 - 2);
+    while (e2 * 2 === e1) e2 = ri(1, e1 - 2);
     var mm = mc('x^' + (e1 - e2), ['x^' + (e1 + e2), 'x^' + (e1 * e2), 'x^' + e2]);
     return {
       q: 'Which expression is equivalent to x^' + e1 + ' / x^' + e2 + '? Assume x ≠ 0.',
@@ -223,7 +241,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Advanced Math', ['medium'], function () {
+  reg('b4', 'Advanced Math', ['medium'], function () {
     var start = ri(2, 8) * 100, dbl = pick([2, 3]), t = ri(1, 3) * dbl;
     var mm = mc(start + ' · 2^' + (t / dbl), [start + ' · 2^' + t, start + ' · ' + (t / dbl), '2^' + t]);
     return {
@@ -233,7 +251,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Advanced Math', ['medium'], function () {
+  reg('b1', 'Advanced Math', ['medium'], function () {
     var a = ri(2, 5), b = ri(1, 4), x = ri(2, 6);
     var fa = a * x * x, g = x - b;
     var mm = mc(fa, [a * x, fa + b, (x - b) * (x - b)]);
@@ -244,7 +262,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Advanced Math', ['hard'], function () {
+  reg('b3', 'Advanced Math', ['hard'], function () {
     var h = ri(2, 5), k = ri(2, 6);
     var mm = mc('(x − ' + (h - 1) + ')² + ' + (k - 2), ['(x − ' + (h + 1) + ')² + ' + (k + 2), '(x + ' + (h - 1) + ')² + ' + (k - 2), '(x − ' + (h - 1) + ')² + ' + (k + 2)]);
     return {
@@ -254,7 +272,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Advanced Math', ['hard'], function () {
+  reg('b4', 'Advanced Math', ['hard'], function () {
     var x = ri(4, 9), a = ri(1, 3);
     /* √(x+a) = x − b, подбираем b так, что x — корень: (x−b)² = x+a → b = x − √(x+a) — не всегда целый.
        Генерируем наоборот: b = ri, x = b + s, s = √(x+a) → x + a = s² → a = s² − x */
@@ -269,7 +287,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Advanced Math', ['hard'], function () {
+  reg('b2', 'Advanced Math', ['hard'], function () {
     var r1 = ri(1, 5), r2 = -ri(1, 5);
     var mm = mc('x² ' + (-(r1 + r2) >= 0 ? '+ ' + (-(r1 + r2)) : '− ' + Math.abs(r1 + r2)) + 'x ' + (r1 * r2 >= 0 ? '+ ' + r1 * r2 : '− ' + Math.abs(r1 * r2)) + ' = 0',
       ['x² + ' + (r1 + r2) + 'x − ' + r1 * r2 + ' = 0', 'x² − ' + r1 * r2 + 'x + ' + (r1 + r2) + ' = 0', 'x² + ' + r1 * r2 + 'x = 0']);
@@ -280,7 +298,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Advanced Math', ['hard'], function () {
+  reg('b2', 'Advanced Math', ['hard'], function () {
     var h = ri(1, 5), p = ri(1, 4);
     var c = h * h - p; /* x² − 2h x + c имеет ровно один корень при c = h² */
     var mm = mc(h * h, [h, h * h + p, p]);
@@ -293,7 +311,7 @@ window.BANK_MATH = (function () {
 
   /* ═══════════ PROBLEM-SOLVING AND DATA ANALYSIS ═══════════ */
 
-  reg('Problem-Solving and Data Analysis', ['easy'], function () {
+  reg('c1', 'Problem-Solving and Data Analysis', ['easy'], function () {
     var old_ = ri(4, 20) * 10, drop = ri(10, 40);
     var nw = Math.round(old_ * (100 - drop) / 100);
     var mm = mc(drop + '%', [(100 - drop) + '%', (drop - 5) + '%', (drop + 5) + '%']);
@@ -304,7 +322,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Problem-Solving and Data Analysis', ['medium'], function () {
+  reg('c3', 'Problem-Solving and Data Analysis', ['medium'], function () {
     var n = ri(4, 6), mean = ri(6, 15);
     var sum = mean * n, known = [], s = 0;
     for (var i = 0; i < n - 1; i++) { var v = ri(2, mean + 8); known.push(v); s += v; }
@@ -317,7 +335,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Problem-Solving and Data Analysis', ['medium'], function () {
+  reg('c3', 'Problem-Solving and Data Analysis', ['medium'], function () {
     var vals = [ri(1, 9), ri(10, 19), ri(20, 29), ri(30, 39), ri(40, 49)];
     var add = ri(50, 90);
     var sorted = vals.slice().sort(function (a, b) { return a - b; });
@@ -332,8 +350,10 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Problem-Solving and Data Analysis', ['easy'], function () {
+  reg('c4', 'Problem-Solving and Data Analysis', ['easy'], function () {
     var red = ri(2, 8), blue = ri(2, 8), green = ri(2, 8);
+    while (blue === red) blue = ri(2, 8);
+    while (green === red || green === blue) green = ri(2, 8);
     var total = red + blue + green;
     var mm = mc(red + '/' + total, [blue + '/' + total, red + '/' + blue, green + '/' + total]);
     return {
@@ -343,7 +363,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Problem-Solving and Data Analysis', ['hard'], function () {
+  reg('c4', 'Problem-Solving and Data Analysis', ['hard'], function () {
     var r = ri(3, 6), b = ri(3, 6), g = ri(2, 5);
     var total = r + b + g;
     var p = (r / total) * ((r - 1) / (total - 1));
@@ -361,7 +381,7 @@ window.BANK_MATH = (function () {
     return (n / g) + '/' + (d / g);
   }
 
-  reg('Problem-Solving and Data Analysis', ['medium'], function () {
+  reg('c2', 'Problem-Solving and Data Analysis', ['medium'], function () {
     var unit = ri(15, 90), n1 = ri(2, 6), n2 = n1 + ri(2, 5);
     var mm = mc(unit * n2, [unit * n1, unit + n2, unit * (n2 - n1)]);
     return {
@@ -371,7 +391,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Problem-Solving and Data Analysis', ['medium'], function () {
+  reg('c5', 'Problem-Solving and Data Analysis', ['medium'], function () {
     var slope = ri(3, 9), base = ri(10, 60), x = ri(4, 12);
     var y = slope * x + base;
     var mm = mc(y, [slope * x, y + slope, base]);
@@ -382,7 +402,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Problem-Solving and Data Analysis', ['medium'], function () {
+  reg('c5', 'Problem-Solving and Data Analysis', ['medium'], function () {
     var sampled = ri(2, 5) * 40, pct = pick([30, 40, 55, 60, 70, 75]);
     var inSample = Math.round(sampled * pct / 100);
     var school = sampled * ri(6, 12);
@@ -395,7 +415,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Problem-Solving and Data Analysis', ['medium'], function () {
+  reg('c3', 'Problem-Solving and Data Analysis', ['medium'], function () {
     var sd = ri(2, 9), add = ri(5, 30);
     var mm = mc(sd, [sd + add, add, sd * 2]);
     return {
@@ -407,7 +427,7 @@ window.BANK_MATH = (function () {
 
   /* ═══════════ GEOMETRY AND TRIGONOMETRY ═══════════ */
 
-  reg('Geometry and Trigonometry', ['easy'], function () {
+  reg('d1', 'Geometry and Trigonometry', ['easy'], function () {
     var a = ri(25, 80);
     var mm = mc(180 - a, [90 - a, a, 360 - a]);
     return {
@@ -417,7 +437,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Geometry and Trigonometry', ['medium'], function () {
+  reg('d3', 'Geometry and Trigonometry', ['medium'], function () {
     var r = ri(3, 12);
     var mm = mc(r, [2 * r, r * r, r / 2]);
     return {
@@ -427,7 +447,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Geometry and Trigonometry', ['hard'], function () {
+  reg('d3', 'Geometry and Trigonometry', ['hard'], function () {
     var a = ri(1, 6), b = ri(1, 6), r = ri(2, 9);
     var mm = mc('(' + a + ', ' + (-b) + '), r = ' + r, ['(' + (-a) + ', ' + b + '), r = ' + r, '(' + a + ', ' + b + '), r = ' + (r * r), '(' + (-a) + ', ' + (-b) + '), r = ' + r]);
     return {
@@ -437,7 +457,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Geometry and Trigonometry', ['easy'], function () {
+  reg('d2', 'Geometry and Trigonometry', ['easy'], function () {
     var leg = ri(2, 12);
     var mm = mc(leg + '√2', [leg + '√3', 2 * leg, leg * 2 + '√2']);
     return {
@@ -447,7 +467,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Geometry and Trigonometry', ['medium'], function () {
+  reg('d2', 'Geometry and Trigonometry', ['medium'], function () {
     var x = ri(2, 9);
     var mm = mc(2 * x, [x + '√3', x + '√2', x * x], );
     return {
@@ -457,7 +477,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Geometry and Trigonometry', ['medium'], function () {
+  reg('e1', 'Geometry and Trigonometry', ['medium'], function () {
     var opp = ri(3, 5) * pick([1, 1]), adj = ri(5, 12);
     var hyp2 = opp * opp + adj * adj;
     var hyp = Math.sqrt(hyp2);
@@ -470,7 +490,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Geometry and Trigonometry', ['medium'], function () {
+  reg('d4', 'Geometry and Trigonometry', ['medium'], function () {
     var r = ri(2, 7), h = ri(4, 12);
     var mm = mc(r * r + 'π · ' + h, [r + 'π · ' + h, '2π' + r + ' · ' + h, r * r + 'π'], );
     return {
@@ -480,7 +500,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Geometry and Trigonometry', ['hard'], function () {
+  reg('d4', 'Geometry and Trigonometry', ['hard'], function () {
     var k = ri(2, 4), area = 9;
     var newArea = area * k * k;
     var mm = mc(newArea, [9 * k, 9 + k, 3 * k * 3]);
@@ -491,7 +511,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Geometry and Trigonometry', ['easy'], function () {
+  reg('d1', 'Geometry and Trigonometry', ['easy'], function () {
     var a = ri(3, 9), b = ri(4, 12);
     var hyp2 = a * a + b * b, hyp = Math.sqrt(hyp2);
     if (hyp % 1 !== 0) { a = 6; b = 8; hyp = 10; }
@@ -503,7 +523,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Geometry and Trigonometry', ['medium'], function () {
+  reg('d5', 'Geometry and Trigonometry', ['medium'], function () {
     var k = ri(2, 5), side = ri(3, 9);
     var mm = mc(side * k, [side + k, side * k * k, Math.round(side / k)]);
     return {
@@ -513,7 +533,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Geometry and Trigonometry', ['hard'], function () {
+  reg('d3', 'Geometry and Trigonometry', ['hard'], function () {
     var r = ri(3, 9), deg = pick([60, 90, 120]);
     var frac = simplifyFraction(deg, 360);
     var area = (Math.PI * r * r * deg / 360);
@@ -525,7 +545,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Algebra', ['medium'], function () {
+  reg('a5', 'Algebra', ['medium'], function () {
     var m = ri(2, 8), x = ri(1, 4), b = ri(2, 15);
     var y = m * x + b;
     var mm = mc('(' + x + ', ' + y + ')', ['(' + y + ', ' + x + ')', '(' + x + ', ' + (y + m) + ')', '(' + (x + 1) + ', ' + y + ')']);
@@ -536,7 +556,7 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Advanced Math', ['medium'], function () {
+  reg('b1', 'Advanced Math', ['medium'], function () {
     var x = ri(2, 6), k = ri(2, 5);
     var val = k * x * x;
     var mm = mc(val, [k * x, 2 * k * x, val + k]);
@@ -547,15 +567,174 @@ window.BANK_MATH = (function () {
     };
   });
 
-  reg('Problem-Solving and Data Analysis', ['easy'], function () {
+  reg('c1', 'Problem-Solving and Data Analysis', ['easy'], function () {
     var old_ = ri(20, 60), growth = ri(5, 25);
     var nw = old_ + growth;
     var pct = Math.round(growth / old_ * 100);
-    var mm = mc('about ' + pct + '%', ['about ' + (pct + 10) + '%', 'about ' + growth + '%', 'about ' + Math.max(5, pct - 10) + '%']);
+    var mm = mc('about ' + pct + '%', ['about ' + (pct + 12) + '%', 'about ' + Math.max(3, pct - 7) + '%', 'about ' + (pct + 5) + '%']);
     return {
       q: 'The number of library visitors rose from ' + old_ + ' to ' + nw + ' per week. What was the approximate percent increase?',
       options: mm.options, correct: mm.correct,
       explain: growth + '/' + old_ + ' ≈ ' + pct + '%.',
+    };
+  });
+
+
+  /* ═══════════ ДОБАВКА: покрытие тем учебного плана ═══════════ */
+
+  reg('a2', 'Algebra', ['medium'], function () {
+    var m = ri(2, 6), cap = ri(3, 9) * 10, fee = ri(1, 5) * 10;
+    var mm = mc('m ≤ ' + Math.floor((cap - fee) / m), ['m ≥ ' + Math.floor((cap - fee) / m), 'm ≤ ' + (Math.floor((cap - fee) / m) + 1), 'm ≥ 0']);
+    return {
+      q: 'A service charges $' + fee + ' plus $' + m + ' per hour. A customer can spend at most $' + cap + '. Which inequality shows the number of hours h they can afford?',
+      options: mm.options, correct: mm.correct,
+      explain: fee + ' + ' + m + 'h ≤ ' + cap + ' → h ≤ ' + Math.floor((cap - fee) / m) + '. «At most» → ≤.',
+    };
+  });
+
+  reg('a3', 'Algebra', ['medium'], function () {
+    var big = ri(10, 40), diff = ri(1, 9);
+    var small = big - diff;
+    var mm = mc(big, [small, big + small, diff]);
+    return {
+      q: 'Two numbers have a sum of ' + (big + small) + ' and a difference of ' + diff + '. What is the LARGER number?',
+      options: mm.options, correct: mm.correct,
+      explain: 'Складываем уравнения: 2x = ' + (big + small) + ' → большее x = ' + big + '.',
+    };
+  });
+
+  reg('b1', 'Advanced Math', ['medium'], function () {
+    var x = ri(2, 6), k = ri(2, 9);
+    var val = x * x + k * x;
+    var mm = mc(k, [val, k + x, x * x]);
+    return {
+      q: 'If f(x) = x² + kx and f(' + x + ') = ' + val + ', what is k?',
+      options: mm.options, correct: mm.correct,
+      explain: x * x + ' + ' + x + 'k = ' + val + ' → k = ' + k + '.',
+    };
+  });
+
+  reg('b4', 'Advanced Math', ['medium'], function () {
+    var k = ri(2, 9);
+    var mm = mc(k, [k + 2, 3 * k, 2 * k]);
+    return {
+      q: 'If 2^(x + ' + (2 * k) + ') = 2^(3x), what is the value of x?',
+      options: mm.options, correct: mm.correct,
+      explain: 'Одинаковая база → показатели равны: x + ' + (2 * k) + ' = 3x → x = ' + k + '.',
+    };
+  });
+
+  reg('b5', 'Advanced Math', ['medium'], function () {
+    var a = ri(2, 6), c = ri(3, 12);
+    var x1 = c + a, x2 = c - a;
+    var mm = mc(x1, [x2, c, 2 * c]);
+    return {
+      q: 'If |' + a + 'x − ' + a * c + '| = ' + a * c + ', what is the LARGER solution for x?',
+      options: mm.options, correct: mm.correct,
+      explain: '|' + a + 'x − ' + a * c + '| = ' + a * c + ' → ' + a + 'x = ' + (a * c + a * c) + ' или ' + a + 'x = 0 → x = ' + x1 + ' или x = 0. Большее — ' + x1 + '.',
+    };
+  });
+
+  reg('c1', 'Problem-Solving and Data Analysis', ['medium'], function () {
+    var p = ri(1, 4) * 5;
+    var loss = p * p / 100;
+    var mm = mc(loss + '%', [p + '%', (2 * p) + '%', '0%']);
+    return {
+      q: 'A value is increased by ' + p + '% and then decreased by ' + p + '%. By what percent is the final value different from the original?',
+      options: mm.options, correct: mm.correct,
+      explain: '(1 + ' + p / 100 + ')(1 − ' + p / 100 + ') = 1 − ' + p / 100 + '² → потеря ' + loss + '%.',
+    };
+  });
+
+  reg('d3', 'Geometry and Trigonometry', ['medium'], function () {
+    var r = ri(3, 10);
+    while (r === 4) r = ri(3, 10);
+    var mm = mc(2 * r + 'π', [r * r + 'π', r + 'π', (r + 2) + 'π']);
+    return {
+      q: 'A circle has an area of ' + r * r + 'π. What is its circumference?',
+      options: mm.options, correct: mm.correct,
+      explain: 'r² = ' + r * r + ' → r = ' + r + ' → C = 2πr = ' + 2 * r + 'π.',
+    };
+  });
+
+  reg('d5', 'Geometry and Trigonometry', ['medium'], function () {
+    var a = pick([35, 40, 50, 55, 65, 70]);
+    var mm = mc(a + '°', [(90 - a) + '°', (180 - a) + '°', (a + 15) + '°']);
+    return {
+      q: 'Two parallel lines are cut by a transversal. One of the angles measures ' + a + '°. What is the measure of its corresponding angle (соответственный угол)?',
+      options: mm.options, correct: mm.correct,
+      explain: 'Соответственные углы при параллельных прямых равны → ' + a + '°.',
+    };
+  });
+
+  reg('e1', 'Geometry and Trigonometry', ['medium'], function () {
+    var mm = mc('12/13', ['5/13', '5/12', '13/12']);
+    return {
+      q: 'In right triangle ABC, the angle C = 90°, AB = 13, and BC = 5. What is cos(A)?',
+      options: mm.options, correct: mm.correct,
+      explain: 'AC = √(169 − 25) = 12. cos(A) = прилежащий/гипотенуза = AC/AB = 12/13.',
+    };
+  });
+
+  reg('e2', 'Geometry and Trigonometry', ['medium'], function () {
+    var mm = mc('12', ['13', '5', '17']);
+    return {
+      q: 'A 13-meter ladder leans against a wall with its base 5 meters from the wall. How high up the wall does the ladder reach?',
+      options: mm.options, correct: mm.correct,
+      explain: 'Пифагор: √(13² − 5²) = √144 = 12 м.',
+    };
+  });
+
+  reg('e2', 'Geometry and Trigonometry', ['easy'], function () {
+    var mm = mc('5', ['12', '13', '7']);
+    return {
+      q: 'A 13-meter ladder leans against a wall and reaches 12 meters up the wall. How far is the base of the ladder from the wall?',
+      options: mm.options, correct: mm.correct,
+      explain: 'Пифагор: √(13² − 12²) = √25 = 5 м.',
+    };
+  });
+
+  reg('e3', 'Advanced Math', ['medium'], function () {
+    var k = ri(2, 9);
+    var mm = mc('x + ' + k, ['x − ' + k, 'x', 'x + ' + (k * k)]);
+    return {
+      q: 'Which expression is equivalent to (x² − ' + k * k + ')/(x − ' + k + ') for x ≠ ' + k + '?',
+      options: mm.options, correct: mm.correct,
+      explain: 'Разность квадратов: (x − ' + k + ')(x + ' + k + ')/(x − ' + k + ') = x + ' + k + '.',
+    };
+  });
+
+  reg('e3', 'Advanced Math', ['easy'], function () {
+    var mm = mc('x − 4', ['x + 4', 'x', 'x + 16']);
+    return {
+      q: 'Which expression is equivalent to (x² − 16)/(x − 4) for x ≠ 4?',
+      options: mm.options, correct: mm.correct,
+      explain: 'Разность квадратов: (x − 4)(x + 4)/(x − 4) = x − 4.',
+    };
+  });
+
+  reg('e4', 'Algebra', ['hard'], function () {
+    var price = ri(4, 12) * 10, p = pick([10, 20, 25]), coupon = ri(1, 4) * 5;
+    var after = price * (100 - p) / 100;
+    var fin = after - coupon;
+    var mm = mc(fin, [after, price - coupon, price * (100 - p) / 100 + coupon]);
+    return {
+      q: 'An item costs $' + price + '. Its price is reduced by ' + p + '%, and then a $' + coupon + ' coupon is applied. What is the final price?',
+      options: mm.options, correct: mm.correct,
+      explain: price + ' · ' + (100 - p) + '/100 = ' + after + '; затем − ' + coupon + ' → $' + fin + '.',
+    };
+  });
+
+  reg('e4', 'Algebra', ['medium'], function () {
+    var a = ri(3, 8), x = ri(2, 9), p = pick([10, 20, 25]);
+    var b = ri(1, 9);
+    var y = a * x + b;
+    var fin = Math.round(y * (100 - p) / 100 * 100) / 100;
+    var mm = mc(fin, [Math.round(y * (100 - p) / 1000 * 100) / 100, y, Math.round(y * (100 + p) / 100 * 100) / 100]);
+    return {
+      q: 'The cost of a service call is C = ' + a + 'h + ' + b + ', where h is hours. A job takes ' + x + ' hours, and a loyalty discount of ' + p + '% is then applied to the total. What is the final price?',
+      options: mm.options, correct: mm.correct,
+      explain: 'C = ' + a + '·' + x + ' + ' + b + ' = ' + y + '; скидка ' + p + '% → ' + fin + '.',
     };
   });
 
@@ -564,10 +743,15 @@ window.BANK_MATH = (function () {
   return {
     all: G,
     /* выдаёт count вопросов нужной сложности, генераторы без повторов в одной выдаче */
-    draw: function (difficulty, count) {
+    draw: function (topic, difficulty, count) {
       var pool = G.filter(function (g) {
-        return g.difficulties.indexOf(difficulty) !== -1;
+        return (topic === '*' || g.topic === topic) &&
+          g.difficulties.indexOf(difficulty) !== -1;
       });
+      if (!pool.length) {
+        /* у темы нет задач этой сложности — берём любые её задачи */
+        pool = G.filter(function (g) { return topic === '*' || g.topic === topic; });
+      }
       pool = shuffle(pool.slice());
       var out = [], i = 0, guard = 0;
       while (out.length < count && guard < count * 20) {
@@ -575,6 +759,7 @@ window.BANK_MATH = (function () {
         if (i >= pool.length) { pool = shuffle(pool.slice()); i = 0; }
         var q = pool[i].make();
         q.domain = pool[i].domain;
+        q.topic = pool[i].topic;
         q.difficulty = difficulty;
         q.calc = true;
         out.push(q);

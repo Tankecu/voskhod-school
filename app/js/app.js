@@ -93,8 +93,8 @@
     return [
       { id: 'today', label: 'Сегодня', icon: 'home' },
       { id: 'schedule', label: 'Расписание', icon: 'calendar' },
-      { id: 'tests', label: 'Тесты', icon: 'clipboard' },
-      { id: 'mock', label: 'Пробник', icon: 'star' },
+      { id: 'trainer', label: 'Тренажёр', icon: 'star' },
+      { id: 'mock', label: 'Пробник', icon: 'clipboard' },
       { id: 'more', label: 'Ещё', icon: 'dots' },
     ];
   }
@@ -274,7 +274,7 @@
       var pct = lvl.next ? Math.min(100, Math.round((xp - lvl.level.min) / (lvl.next.min - lvl.level.min) * 100)) : 100;
       var hwPending = DB.hwFor(user).filter(function (h) { return h.doneBy.indexOf(user.id) === -1; }).length;
 
-      html += orbitCard(xp, pct) + payStatusWidget(user) +
+      html += orbitCard(xp, pct) + payStatusWidget(user) + trainerCard(user) + planCard(user) +
         '<div class="stat-row" style="margin-bottom:18px">' +
           '<div class="stat-tile glass">' + ic('fire') + '<b>' + (user.streak || 0) + '</b><span>' + UI.plural(user.streak || 0, 'день серии', 'дня серии', 'дней серии') + '</span></div>' +
           '<div class="stat-tile glass">' + ic('calendar') + '<b>' + weekCount + '</b><span>уроков на неделе</span></div>' +
@@ -433,6 +433,32 @@
       '</div></div>';
   }
 
+  function trainerCard(user) {
+    var placement = DB.placementOf(user.id);
+    if (!placement) {
+      return '<div class="glass card" style="display:flex;gap:12px;align-items:center;margin-bottom:12px;border:1px solid rgba(245,194,75,.45)">' +
+        '<span class="dot dot--gold"></span><span style="flex:1;font-size:13.5px"><b>Вводное тестирование не пройдено</b>' +
+        '<span style="display:block;font-size:12.5px;color:var(--dust)">24 темы SAT Math — система построит твою траекторию</span></span>' +
+        '<a class="btn btn--gold btn--sm" href="#/trainer">Начать</a></div>';
+    }
+    var plan = DB.planStudyOf(user.id);
+    return '<div class="glass card" style="display:flex;gap:12px;align-items:center;margin-bottom:12px">' +
+      '<span class="dot dot--green"></span><span style="flex:1;font-size:13.5px"><b>Тренажёр</b>' +
+      '<span style="display:block;font-size:12.5px;color:var(--dust)">блоки · зачёты · экзамены уровней' +
+      (plan && plan.status === 'approved' ? ' · маршрут утверждён' : '') + '</span></span>' +
+      '<a class="btn btn--gold btn--sm" href="#/trainer">Открыть</a></div>';
+  }
+
+  function planCard(user) {
+    var p = DB.studentPlanOf(user.id);
+    if (!p) return '';
+    var t = p.teacherId ? DB.user(p.teacherId) : null;
+    return '<div class="glass card" style="display:flex;gap:12px;align-items:center;margin-bottom:12px">' + ic('calendar') +
+      '<span style="flex:1;font-size:13.5px"><b>' + p.perWeek + ' × ' + p.durationMin + ' мин в неделю</b>' +
+      '<span style="display:block;font-size:12.5px;color:var(--dust)">' + (t ? esc(t.name) + ' · ' : '') + 'индивидуальные занятия' +
+      (p.monthly ? ' · <b style="color:var(--ion)">$' + Number(p.monthly).toLocaleString('ru-RU') + '/мес</b>' : '') + '</span></span></div>';
+  }
+
   function nextUnreadTopic() {
     var read = readMarks();
     for (var c = 0; c < (window.THEORY || []).length; c++) {
@@ -502,7 +528,9 @@
     return '<div class="lesson glass' + (st === 'live' ? ' lesson--live' : '') + '">' +
       '<div class="lesson__time"><b>' + esc(l.startTime) + '</b><span>' + l.durMin + ' мин</span></div>' +
       '<div class="lesson__main">' +
-        '<div class="lesson__subject">' + subjectTag(l.subject) + '<span>' + esc(l.topic || '') + '</span></div>' +
+        '<div class="lesson__subject">' + subjectTag(l.subject) +
+          (l.club ? '<span class="chip chip--gold">🗣 Speaking Club</span>' : '') +
+          '<span>' + esc(l.topic || '') + '</span></div>' +
         (t ? '<div class="lesson__teacher">' + UI.avatar(t, 'sm') + esc(t.name) + '</div>' : '') +
       '</div>' +
       '<div class="lesson__side">' + statusChip(l) +
@@ -609,6 +637,9 @@
           '<label class="field"><span class="field__label">минут</span><input class="input" id="leDur" type="number" min="15" max="240" value="' + l.durMin + '"></label>' +
         '</div>' +
         '<label class="field"><span class="field__label">ссылка на класс (meet/zoom)</span><input class="input" id="leRoom" value="' + esc(l.room) + '"></label>' +
+        '<label class="opt-row' + (l.club ? ' opt-row--right' : '') + '" style="padding:6px 0;cursor:pointer">' +
+          '<input type="checkbox" id="leClub" ' + (l.club ? 'checked' : '') + ' style="display:none">' +
+          '<span class="opt-row__radio"></span><span>Speaking Club — групповая разговорная практика</span></label>' +
         '<label class="field"><span class="field__label">материалы — по строке на каждое: название | ссылка</span>' +
           '<textarea class="input" id="leMats" placeholder="Конспект: проценты | https://…">' + esc((l.materials || []).map(function (m) { return m.name + ' | ' + (m.url || ''); }).join('\n')) + '</textarea></label>' +
         '<div style="border-top:1px solid var(--line);padding-top:12px">' +
@@ -637,6 +668,7 @@
         subject: subject, topic: v('leTopic'), date: date,
         startTime: start, durMin: Math.max(15, +v('leDur') || 90),
         room: v('leRoom'), materials: mats,
+        club: document.getElementById('leClub').checked,
       };
       DB.saveLesson(lesson).then(function () {
         var hwTitle = v('leHwTitle');
@@ -970,7 +1002,7 @@
           UI.avatar(s, 'md') +
           '<div class="student-row__main"><b>' + esc(s.name) + '</b><span>' + esc(lvl.level.name) + ' · серия ' + (s.streak || 0) + '</span></div>' +
           '<div class="student-row__stats"><b>' + (avg === null ? '—' : avg + '%') + '</b><span>' + (s.xp || 0) + ' XP</span></div>' +
-          '</a>';
+          '</a><a class="btn btn--ghost btn--sm" href="#/route/' + sid + '" style="margin:-6px 0 10px 16px;width:calc(100% - 16px)">🧭 Маршрут обучения</a>';
       }).join('');
       return '<p class="section-label"><span>' + esc(g.name) + ' · ' + g.studentIds.length + ' чел.</span></p>' +
         '<div class="glass" style="padding:6px 0">' + (rows || emptyBox('users', 'Пусто', 'Добавь учеников в админ-панели')) + '</div>';
@@ -1000,7 +1032,10 @@
 
     shell(user, 'students',
       '<div class="page-head"><p class="eyebrow">[ карточка ученика ]</p>' +
-      '<div class="page-head__row"><h1>' + esc(s.name) + '</h1><a class="icon-btn" href="#/students" aria-label="Назад">' + ic('back') + '</a></div></div>' +
+      '<div class="page-head__row"><h1>' + esc(s.name) + '</h1>' +
+      '<div style="display:flex;gap:8px">' +
+      '<a class="btn btn--ghost btn--sm" href="#/route/' + s.id + '">🧭 Маршрут</a>' +
+      '<a class="icon-btn" href="#/students" aria-label="Назад">' + ic('back') + '</a></div></div></div>' +
       '<div class="glass orbit-wrap" style="margin-bottom:12px">' + UI.avatar(s, 'lg') +
         '<div class="orbit-wrap__info" style="flex:1"><b>' + esc(lvl.level.name) + '</b>' +
         '<span>' + (s.xp || 0) + ' XP · серия ' + (s.streak || 0) + ' · домашка ' + hwDone + '/' + hw.length +
@@ -1115,6 +1150,7 @@
               return '<option value="' + p[0] + '" ' + (u.role === p[0] ? 'selected' : '') + '>' + p[1] + '</option>';
             }).join('') + '</select></label>' +
           '<label class="field" id="umSubjectWrap" style="display:none"><span class="field__label">предмет преподавателя</span><input class="input" id="umSubject" value="' + esc(u.subject || '') + '" placeholder="SAT Math · Математика"></label>' +
+          '<label class="field" id="umRateWrap" style="display:none"><span class="field__label">ставка, $/час (для цены обучения)</span><input class="input" id="umRate" type="number" min="0" value="' + esc(u.rate || 0) + '"></label>' +
           '<label class="field" id="umGroupWrap" style="display:none"><span class="field__label">группа ученика</span><select class="input" id="umGroup">' +
             groups.map(function (g) { return '<option value="' + g.id + '" ' + (u.groupId === g.id ? 'selected' : '') + '>' + esc(g.name) + '</option>'; }).join('') + '</select></label>' +
           (isEdit ? '' : '<label class="field"><span class="field__label">начальный пароль</span><input class="input" id="umPass" type="text" minlength="6" placeholder="минимум 6 символов"></label>') +
@@ -1127,6 +1163,7 @@
       var roleSel = document.getElementById('umRole');
       function syncRole() {
         document.getElementById('umSubjectWrap').style.display = roleSel.value === 'teacher' ? '' : 'none';
+        document.getElementById('umRateWrap').style.display = roleSel.value === 'teacher' ? '' : 'none';
         document.getElementById('umGroupWrap').style.display = roleSel.value === 'student' ? '' : 'none';
       }
       roleSel.addEventListener('change', syncRole); syncRole();
@@ -1139,6 +1176,7 @@
         var record = Object.assign({}, u, {
           name: name, login: login, role: role,
           subject: role === 'teacher' ? v('umSubject') : (role === 'admin' ? 'Администратор' : ''),
+          rate: role === 'teacher' ? (+document.getElementById('umRate').value || 0) : (u.rate || 0),
           groupId: role === 'student' ? v('umGroup') : '',
         });
         if (isEdit) {
@@ -1438,11 +1476,129 @@
     });
   }
 
+  /* ═══════════ МАРШРУТ ОБУЧЕНИЯ (учитель/админ) ═══════════ */
+
+  function renderRoutePlanner(user, studentId) {
+    var s = DB.user(studentId);
+    if (!s || s.role !== 'student') { location.hash = '#/students'; return; }
+    var rec = MASTERY.recommend(studentId);
+    var plan = DB.planStudyOf(studentId);
+    var tName = function (id) { var t = MASTERY.topicById(id); return t ? t.title : id; };
+
+    var blocksHtml = window.CURRICULUM.blocks.map(function (b) {
+      var level = MASTERY.blockLevel(studentId, b.id);
+      var score = MASTERY.blockScore(studentId, b.id);
+      var rows = b.topics.map(function (t) {
+        var row = DB.masteryOf(studentId, t.id);
+        var scoreV = row ? row.score || 0 : 0;
+        var hue = scoreV >= 70 ? 'rgba(124,232,181,' : scoreV >= 40 ? 'rgba(245,194,75,' : 'rgba(245,140,140,';
+        return '<div class="hm-cell" style="background:' + hue + (0.12 + scoreV / 300) + ')' + '">' +
+          '<b>' + scoreV + '</b><span>' + esc(t.title) + '</span>' +
+          (row && row.gatePassed ? '<i>зачёт ✓</i>' : '<i>без зачёта</i>') +
+          '</div>';
+      }).join('');
+      return '<div class="glass card" style="margin-bottom:12px">' +
+        '<div class="tr-block__head">' +
+          '<span class="card__icon">' + (b.icon || '∑') + '</span>' +
+          '<div style="flex:1"><b>' + esc(b.title) + '</b>' +
+          '<span style="display:block;font-size:12px;color:var(--dust)">балл блока: <b style="color:var(--ion)">' + score + '</b>/100</span></div>' +
+          '<span class="chip chip--gold">' + MASTERY.LEVEL_ICON[level] + ' ' + MASTERY.LEVEL_RU[level] + '</span>' +
+        '</div>' +
+        '<div class="hm-grid">' + rows + '</div>' +
+        '</div>';
+    }).join('');
+
+    var recHtml = [];
+    if (rec.examReady) recHtml.push('Экзамен готов: блок ' + rec.examReady + ' — все темы зачтены');
+    if (rec.weakest) recHtml.push('Слабое звено: ' + tName(rec.weakest) + ' — стоит повторить');
+    if (rec.nextByRoute) recHtml.push('Следующая по маршруту: ' + tName(rec.nextByRoute));
+
+    var planApproved = plan && plan.status === 'approved';
+
+    shell(user, 'students',
+      '<div class="page-head"><p class="eyebrow">[ маршрут обучения · ' + esc(s.name) + ' ]</p>' +
+      '<div class="page-head__row"><h1>Маршрут</h1>' +
+      '<a class="icon-btn" href="#/students" aria-label="Назад">' + ic('back') + '</a></div>' +
+      '<p>Тепловая карта мастерства (1–100, скрыто от ученика) и рекомендации системы</p></div>' +
+
+      '<div class="glass card" style="margin-bottom:14px">' +
+        '<b style="font-family:var(--font-display);font-size:14.5px">Рекомендации системы</b>' +
+        '<div class="stack" style="margin-top:10px">' +
+        recHtml.map(function (r) {
+          return '<div class="hw" style="padding:10px 12px"><span class="dot dot--gold"></span><span style="font-size:14px">' + esc(r) + '</span></div>';
+        }).join('') + '</div>' +
+        (planApproved
+          ? '<div class="th-tip" style="margin-top:12px">Маршрут утверждён: ' + plan.topics.slice(0, 5).map(function (id) { return esc(tName(id)); }).join(' → ') + (plan.topics.length > 5 ? ' → …' : '') + '</div>'
+          : '<button class="btn btn--gold btn--full" id="approvePlan" style="margin-top:12px">' + ic('check') + ' Утвердить маршрут системы</button>') +
+      '</div>' +
+
+      '<p class="section-label"><span>тариф ученика</span></p>' +
+      '<div class="glass card stack" id="planBlock"></div>' +
+
+      '<p class="section-label"><span>мастерство по темам</span></p>' + blocksHtml);
+
+    var approveBtn = document.getElementById('approvePlan');
+    if (approveBtn) approveBtn.addEventListener('click', function () {
+      var topics = MASTERY.allTopics().map(function (p) { return p.topic.id; });
+      DB.savePlanStudy({
+        id: DB.newId('rt'), studentId: studentId, teacherId: user.id,
+        topics: topics, status: 'approved', createdAt: new Date().toISOString(),
+      }).then(function () { toast('Маршрут утверждён — ученик увидит его в тренажёре ✦'); rerender(); });
+    });
+
+    renderPlanEditor(user, s, document.getElementById('planBlock'));
+  }
+
+  function renderPlanEditor(user, s, block) {
+    var teachers = DB.allUsers().filter(function (u) { return u.role === 'teacher'; });
+    var plan = DB.studentPlanOf(s.id);
+    var p = plan || { perWeek: 2, durationMin: 60, teacherId: '', status: 'active' };
+    var teacherRate = null;
+    if (p.teacherId) { var t = DB.user(p.teacherId); teacherRate = t ? t.rate || 0 : null; }
+
+    function monthly() {
+      var t = DB.user(document.getElementById('plTeacher').value);
+      var rate = t ? t.rate || 0 : 0;
+      var hours = (+document.getElementById('plDur').value) / 60;
+      return Math.round(rate * hours * (+document.getElementById('plWeek').value) * 4.33);
+    }
+
+    block.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">' +
+        '<label class="field"><span class="field__label">уроков в неделю</span><select class="input" id="plWeek">' +
+          [1, 2, 3, 4, 5].map(function (n) { return '<option ' + (p.perWeek === n ? 'selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
+        '<label class="field"><span class="field__label">длительность, мин</span><select class="input" id="plDur">' +
+          [45, 60, 90].map(function (n) { return '<option ' + (p.durationMin === n ? 'selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
+        '<label class="field"><span class="field__label">преподаватель</span><select class="input" id="plTeacher">' +
+          teachers.map(function (t) { return '<option value="' + t.id + '" ' + (p.teacherId === t.id ? 'selected' : '') + '>' + esc(t.name) + ' · $' + (t.rate || 0) + '/ч</option>'; }).join('') + '</select></label>' +
+      '</div>' +
+      '<p id="plPrice" class="mono" style="font-size:14px;color:var(--solar)">$' + (plan ? plan.monthly : 0) + ' / месяц</p>' +
+      '<button class="btn btn--gold btn--full" id="plSave">Сохранить план</button>' +
+      (plan ? '<p class="mono" style="font-size:11px;color:var(--dust-2);text-align:center">план активен · ученик видит цену в профиле</p>' : '');
+
+    function upd() { document.getElementById('plPrice').textContent = '$' + monthly().toLocaleString('ru-RU') + ' / месяц'; }
+    ['plWeek', 'plDur', 'plTeacher'].forEach(function (id) {
+      document.getElementById(id).addEventListener('change', upd);
+    });
+    document.getElementById('plSave').addEventListener('click', function () {
+      var m = monthly();
+      DB.saveStudentPlan({
+        id: plan ? plan.id : DB.newId('sp'),
+        studentId: s.id, teacherId: document.getElementById('plTeacher').value,
+        perWeek: +document.getElementById('plWeek').value,
+        durationMin: +document.getElementById('plDur').value,
+        monthly: m, currency: 'USD', status: 'active',
+        createdAt: plan ? plan.createdAt : new Date().toISOString(),
+      }).then(function () { toast('Тариф сохранён: $' + m.toLocaleString('ru-RU') + '/мес ✦'); rerender(); });
+    });
+  }
+
   /* ═══════════ ЕЩЁ / НАСТРОЙКИ ═══════════ */
 
   function moreItems(user) {
     var items = [];
     if (user.role === 'student') {
+      items.push({ href: '#/tests', icon: 'clipboard', label: 'Тренировочные тесты', sub: 'полные варианты и тесты' });
       items.push({ href: '#/homework', icon: 'clipboard', label: 'Домашние задания', sub: 'сдать и просмотреть' });
       items.push({ href: '#/progress', icon: 'chart', label: 'Прогресс', sub: 'XP, уровни, значки' });
       items.push({ href: '#/leaderboard', icon: 'users', label: 'Рейтинг', sub: 'кто выше в группе' });
@@ -1619,6 +1775,27 @@
         else if (parts[1] === 'review') Mock.renderReview(document.getElementById('page'), parts[2]);
         else Mock.renderIntro(document.getElementById('page'), user);
         break;
+      case 'trainer':
+        if (user.role !== 'student') { location.hash = '#/today'; break; }
+        if (parts[1] === 'placement' && parts[2] === 'run') Trainer.runPlacement(document.getElementById('page'), user);
+        else if (parts[1] === 'placement') Trainer.renderPlacementIntro(document.getElementById('page'), user);
+        else if (parts[1] === 'stardust') Trainer.renderStardust(document.getElementById('page'), user);
+        else if (parts[1] === 'topic') Trainer.renderTopicSession(document.getElementById('page'), user, parts[2], parts[3] || 'practice');
+        else Trainer.renderTrainer(document.getElementById('page'), user);
+        break;
+      case 'trainer-exam': Trainer.renderLevelExam(document.getElementById('page'), user, parts[1]); break;
+      case 'apply-consult':
+        shell(user, 'trainer',
+          '<div class="page-head"><p class="eyebrow">[ консультация ]</p><h1>Консультация с преподавателем</h1></div>' +
+          '<div class="glass card" style="max-width:640px">' +
+          '<p style="margin-bottom:12px">Твоя карта знаний готова и уже у преподавателя. На консультации вместе выберете частоту занятий, длительность и маршрут — от этого зависит стоимость.</p>' +
+          '<ol class="apply__steps" style="margin-top:8px">' +
+          '<li><b>Напиши преподавателю</b><span>в Telegram — отвечаем в течение дня</span></li>' +
+          '<li><b>Консультация 40 минут</b><span>обсудите цели, расписание и план</span></li>' +
+          '<li><b>Старт тренировок</b><span>маршрут появится в твоём тренажёре</span></li></ol>' +
+          '<a class="btn btn--gold btn--full" href="https://t.me/Tankecu" target="_blank" rel="noopener" style="margin-top:16px">Записаться на консультацию ✈</a>' +
+          '</div>');
+        break;
       case 'progress':
         if (user.role === 'student') renderProgress(user);
         else renderStudents(user);
@@ -1637,6 +1814,7 @@
         renderAdminLeads(user);
         break;
       case 'leaderboard': renderLeaderboard(user); break;
+      case 'route': renderRoutePlanner(user, parts[1]); break;
       case 'more': renderMore(user); break;
       case 'settings': renderSettings(user); break;
       default: renderToday(user);

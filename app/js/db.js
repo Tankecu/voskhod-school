@@ -10,7 +10,7 @@
 window.DB = (function () {
   'use strict';
 
-  var TABLES = ['users', 'groups', 'lessons', 'homework', 'payments', 'attempts', 'custom_tests', 'mock_results', 'leads'];
+  var TABLES = ['users', 'groups', 'lessons', 'homework', 'payments', 'attempts', 'custom_tests', 'mock_results', 'leads', 'mastery', 'block_state', 'placement', 'plans_study', 'stardust', 'student_plans'];
   var LS_KEY = 'vo-db-v2';
   var SESSION_KEY = 'vo-session';
 
@@ -19,7 +19,7 @@ window.DB = (function () {
   var initPromise = null;
 
   function emptyState() {
-    return { users: [], groups: [], lessons: [], homework: [], payments: [], attempts: [], custom_tests: [], mock_results: [], leads: [] };
+    return { users: [], groups: [], lessons: [], homework: [], payments: [], attempts: [], custom_tests: [], mock_results: [], leads: [], mastery: [], block_state: [], placement: [], plans_study: [], stardust: [], student_plans: [] };
   }
 
   /* ── camelCase ↔ snake_case (для Supabase) ── */
@@ -414,6 +414,57 @@ window.DB = (function () {
       return Promise.resolve();
     },
     deleteLead: function (id) { return adapter.remove('leads', id); },
+
+    /* ── система обучения: мастерство, блоки, размещение, ★, планы ── */
+
+    masteryFor: function (studentId) {
+      return state.mastery.filter(function (m) { return m.studentId === studentId; });
+    },
+    masteryOf: function (studentId, topicId) {
+      return state.mastery.find(function (m) { return m.studentId === studentId && m.topicId === topicId; }) || null;
+    },
+    saveMastery: function (m) { return adapter.upsert('mastery', m); },
+
+    blockStates: function (studentId) {
+      return state.block_state.filter(function (b) { return b.studentId === studentId; });
+    },
+    blockStateOf: function (studentId, blockId) {
+      return state.block_state.find(function (b) { return b.studentId === studentId && b.blockId === blockId; }) || null;
+    },
+    saveBlockState: function (b) { return adapter.upsert('block_state', b); },
+
+    placementOf: function (studentId) {
+      var rows = state.placement.filter(function (p) { return p.studentId === studentId; });
+      return rows.length ? rows[rows.length - 1] : null;
+    },
+    savePlacement: function (p) { return adapter.upsert('placement', p); },
+
+    planStudyOf: function (studentId) {
+      var rows = state.plans_study.filter(function (p) { return p.studentId === studentId; });
+      return rows.length ? rows[rows.length - 1] : null;
+    },
+    savePlanStudy: function (p) { return adapter.upsert('plans_study', p); },
+
+    stardustBalance: function (studentId) {
+      return state.stardust.reduce(function (acc, s) {
+        return acc + (s.studentId === studentId ? s.amount : 0);
+      }, 0);
+    },
+    stardustLedger: function (studentId) {
+      return state.stardust.filter(function (s) { return s.studentId === studentId; })
+        .sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+    },
+    addStardust: function (studentId, amount, reason) {
+      var row = { id: api.newId('st'), studentId: studentId, amount: amount, reason: reason || '', createdAt: new Date().toISOString() };
+      state.stardust.push(row);
+      return adapter.upsert('stardust', row).then(function () { return row; });
+    },
+
+    studentPlanOf: function (studentId) {
+      var rows = state.student_plans.filter(function (p) { return p.studentId === studentId; });
+      return rows.length ? rows[rows.length - 1] : null;
+    },
+    saveStudentPlan: function (p) { return adapter.upsert('student_plans', p); },
 
     addXp: function (studentId, amount) {
       var u = api.user(studentId);

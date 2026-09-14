@@ -361,8 +361,10 @@ window.DB = (function () {
       var okCustom = custom.filter(function (t) {
         return t.assignedGroups.some(function (g) { return groupIds.indexOf(g) !== -1; });
       });
+      /* банк школы ('*') виден каждому ученику — даже без группы */
       var okBank = bank.filter(function (t) {
-        return t.assignedGroups.some(function (g) { return groupIds.indexOf(g) !== -1; });
+        return t.assignedGroups.indexOf('*') !== -1 ||
+          t.assignedGroups.some(function (g) { return groupIds.indexOf(g) !== -1; });
       });
       return okCustom.concat(okBank);
     },

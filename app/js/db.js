@@ -198,6 +198,30 @@ window.DB = (function () {
       var u = state.users.find(function (x) { return x.login === String(login).toLowerCase(); });
       if (!u) return Promise.resolve({ error: 'Пользователь с таким логином не найден' });
       if (u.active === false) return Promise.resolve({ error: 'Аккаунт отключён администратором' });
+      /* Supabase: вход через серверный RPC — пароли и хэши недоступны клиенту.
+         Если RPC ещё не создан (PGRST202) — откат на локальную проверку. */
+      if (adapter.name === 'supabase') {
+        return fetch(CONFIG.SUPABASE_URL + '/rest/v1/rpc/voskhod_login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + CONFIG.SUPABASE_ANON_KEY },
+          body: JSON.stringify({ p_login: String(login).toLowerCase(), p_password: password }),
+        }).then(function (r) { return r.json(); }).then(function (res) {
+          if (res && res.error) return { error: res.error };
+          if (!res || !res.id) return self._legacyLogin(u, password); /* RPC не установлен */
+          var fresh = toCamel(res);
+          var i = state.users.findIndex(function (x) { return x.id === fresh.id; });
+          if (i === -1) state.users.push(fresh); else state.users[i] = fresh;
+          setSession(fresh.id);
+          return { user: fresh };
+        }).catch(function (e) {
+          console.warn('db: rpc login', e.message);
+          return self._legacyLogin(u, password);
+        });
+      }
+      return self._legacyLogin(u, password);
+    },
+
+    _legacyLogin: function (u, password) {
       return hashPassword(password, u.salt).then(function (hash) {
         if (hash !== u.passHash) return { error: 'Неверный пароль' };
         setSession(u.id);
@@ -208,6 +232,27 @@ window.DB = (function () {
     authChangePassword: function (userId, oldPassword, newPassword) {
       var u = api.user(userId);
       if (!u) return Promise.resolve({ error: 'Нет пользователя' });
+      if (adapter.name === 'supabase') {
+        return fetch(CONFIG.SUPABASE_URL + '/rest/v1/rpc/voskhod_change_password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + CONFIG.SUPABASE_ANON_KEY },
+          body: JSON.stringify({ p_login: u.login, p_old: oldPassword, p_new: newPassword }),
+        }).then(function (r) { return r.json(); }).then(function (res) {
+          if (res && res.ok) return { ok: true };
+          if (res && res.error) return res;
+          /* RPC не установлен — локальная проверка через passHash из кэша */
+          return hashPassword(oldPassword, u.salt).then(function (h) {
+            if (h !== u.passHash) return { error: 'Текущий пароль неверный' };
+            var salt = randomSalt();
+            return hashPassword(newPassword, salt).then(function (hash) {
+              u.salt = salt; u.passHash = hash;
+              return adapter.upsert('users', u).then(function () { return { ok: true }; });
+            });
+          });
+        }).catch(function () {
+          return { error: 'Сервис недоступен, попробуй позже' };
+        });
+      }
       return hashPassword(oldPassword, u.salt).then(function (h) {
         if (h !== u.passHash) return { error: 'Текущий пароль неверный' };
         var salt = randomSalt();
@@ -246,22 +291,73 @@ window.DB = (function () {
       if (u) { u.active = active; return adapter.upsert('users', u); }
       return Promise.resolve();
     },
-    resetPassword: function (userId, newPassword) {
+    resetPassword: function (userId, newPassword, adminLogin, adminPass) {
       var u = api.user(userId);
       if (!u) return Promise.resolve({ error: 'Нет пользователя' });
+      /* Supabase: сброс только через RPC с подтверждением админа */
+      if (adapter.name === 'supabase') {
+        return fetch(CONFIG.SUPABASE_URL + '/rest/v1/rpc/voskhod_set_password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + CONFIG.SUPABASE_ANON_KEY },
+          body: JSON.stringify({ p_admin_login: adminLogin, p_admin_pass: adminPass, p_target_id: userId, p_new: newPassword }),
+        }).then(function (r) { return r.json(); });
+      }
+      /* локальный адаптер: хэш на устройстве */
       var salt = randomSalt();
       return hashPassword(newPassword, salt).then(function (hash) {
         u.salt = salt; u.passHash = hash;
         return adapter.upsert('users', u).then(function () { return { ok: true }; });
       });
     },
-    deleteUser: function (userId) {
+    deleteUser: function (userId, adminLogin, adminPass) {
       state.groups.forEach(function (g) {
         g.studentIds = g.studentIds.filter(function (s) { return s !== userId; });
         g.teacherIds = g.teacherIds.filter(function (t) { return t !== userId; });
         adapter.upsert('groups', g);
       });
-      return adapter.remove('users', userId);
+      /* Supabase: удаление через RPC с подтверждением админа */
+      if (adapter.name === 'supabase') {
+        return fetch(CONFIG.SUPABASE_URL + '/rest/v1/rpc/voskhod_delete_user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + CONFIG.SUPABASE_ANON_KEY },
+          body: JSON.stringify({ p_admin_login: adminLogin, p_admin_pass: adminPass, p_target_id: userId }),
+        }).then(function (r) { return r.json(); }).then(function (res) {
+          if (res && res.ok) state.users = state.users.filter(function (x) { return x.id !== userId; });
+          return res;
+        });
+      }
+      state.users = state.users.filter(function (x) { return x.id !== userId; });
+      return Promise.resolve({ ok: true });
+    },
+
+    /* Supabase RPC: создать пользователя (хэш делает сервер, anon хэшей не владеет) */
+    rpcCreateUser: function (adminLogin, adminPass, record, password) {
+      return fetch(CONFIG.SUPABASE_URL + '/rest/v1/rpc/voskhod_create_user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + CONFIG.SUPABASE_ANON_KEY },
+        body: JSON.stringify({
+          p_admin_login: adminLogin, p_admin_pass: adminPass,
+          p_id: record.id, p_login: record.login, p_password: password,
+          p_role: record.role, p_name: record.name,
+          p_subject: record.subject || null, p_group_id: record.groupId || null, p_rate: record.rate || null,
+        }),
+      }).then(function (r) { return r.json(); }).then(function (res) {
+        if (res && res.error) return res;
+        /* кладём копию без секретов в локальный кэш (passHash неизвестен) */
+        var cached = Object.assign({}, record, { active: true, xp: 0, streak: 0, createdAt: api.todayIso() });
+        var i = state.users.findIndex(function (x) { return x.id === cached.id; });
+        if (i === -1) state.users.push(cached); else state.users[i] = cached;
+        return { ok: true };
+      });
+    },
+
+    /* Supabase RPC: начисление XP без правки служебных полей напрямую */
+    rpcAddXp: function (studentId, amount) {
+      return fetch(CONFIG.SUPABASE_URL + '/rest/v1/rpc/voskhod_add_xp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + CONFIG.SUPABASE_ANON_KEY },
+        body: JSON.stringify({ p_user_id: studentId, p_amount: amount }),
+      }).catch(function (e) { console.warn('db: add_xp', e.message); });
     },
 
     /* ── группы ── */
@@ -476,6 +572,7 @@ window.DB = (function () {
         u.streak = (u.lastActiveDay === yesterday) ? (u.streak || 0) + 1 : 1;
         u.lastActiveDay = today;
       }
+      if (adapter.name === 'supabase') return api.rpcAddXp(studentId, amount);
       return adapter.upsert('users', u);
     },
     levelOf: function (xp) {

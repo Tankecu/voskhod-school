@@ -295,7 +295,7 @@
               '<span>' + ic('users') + esc((DB.group(next.groupId) || {}).name || '') + '</span>' +
             '</div>' +
             '<div class="hero-lesson__actions">' +
-              '<a class="btn btn--gold btn--sm" href="' + esc(next.room || '#') + '" target="_blank" rel="noopener">' + ic('play') + ' Войти в класс</a>' +
+              '<a class="btn btn--gold btn--sm" href="#/room/' + next.id + '">' + ic('play') + ' Комната занятия</a>' +
               '<button class="btn btn--ghost btn--sm" data-details="' + next.id + '">Подробнее</button>' +
             '</div></div>';
       } else {
@@ -565,7 +565,7 @@
             '<div style="display:flex;flex-wrap:wrap;gap:8px">' + statusChip(l) + '<span class="chip">' + esc(UI.fmtDateFull(l.date)) + ' · ' + esc(l.startTime) + '</span>' +
             (g ? '<span class="chip">' + esc(g.name) + '</span>' : '') + '</div>' +
             (t ? '<div class="lesson__teacher" style="font-size:14px">' + UI.avatar(t, 'md').replace('ava"', 'ava ava--gold"') + '<span><b style="color:var(--stardust)">' + esc(t.name) + '</b><br><span style="font-size:12px;color:var(--dust)">' + esc(t.subject || '') + '</span></span></div>' : '') +
-            '<a class="btn btn--ion btn--full" href="' + esc(l.room || '#') + '" target="_blank" rel="noopener">' + ic('play') + ' Войти в класс</a>' +
+            '<a class="btn btn--ion btn--full" href="#/room/' + l.id + '">' + ic('play') + ' Комната занятия</a>' +
             (mats ? '<div><p class="section-label" style="margin:6px 0 8px"><span>материалы</span></p><div style="display:flex;flex-wrap:wrap;gap:8px">' + mats + '</div></div>' : '') +
             (hwHtml ? '<div><p class="section-label" style="margin:6px 0 8px"><span>домашка</span></p><div class="stack">' + hwHtml + '</div></div>' : '') +
             (canEdit ? '<div style="display:flex;gap:10px"><button class="btn btn--ghost btn--full" data-edit-lesson="' + l.id + '">' + ic('edit') + ' Редактировать</button>' +
@@ -1105,15 +1105,20 @@
           var target = DB.user(b.dataset.pass);
           var m = UI.modal(
             '<div class="modal__head"><h3>Сброс пароля · ' + esc(target.name) + '</h3><button class="icon-btn" data-close>' + ic('x') + '</button></div>' +
-            '<div class="modal__body"><label class="field"><span class="field__label">новый пароль</span>' +
+            '<div class="modal__body">' +
+            '<label class="field"><span class="field__label">новый пароль ученика</span>' +
             '<input class="input" id="npPass" type="text" minlength="6" placeholder="минимум 6 символов"></label>' +
+            '<label class="field"><span class="field__label">твой пароль администратора (подтверждение)</span>' +
+            '<input class="input" id="npAdmin" type="password" autocomplete="current-password"></label>' +
             '<p style="font-size:12px;color:var(--dust)">Скажи новый пароль ученику лично. Хэш в базе заменится сразу.</p></div>' +
             '<div class="modal__foot"><button class="btn btn--ghost btn--full" data-close>Отмена</button>' +
             '<button class="btn btn--gold btn--full" id="npSave">Сбросить</button></div>');
           m.el.querySelector('#npSave').addEventListener('click', function () {
             var v = m.el.querySelector('#npPass').value;
+            var ap = m.el.querySelector('#npAdmin').value;
             if (v.length < 6) { toast('Минимум 6 символов', 'warn'); return; }
-            DB.resetPassword(target.id, v).then(function (r) {
+            if (!ap) { toast('Введи свой пароль администратора', 'warn'); return; }
+            DB.resetPassword(target.id, v, user.login, ap).then(function (r) {
               if (r.error) { toast(r.error, 'warn'); return; }
               m.close(); toast('Пароль обновлён ✦');
             });
@@ -1127,10 +1132,17 @@
           var m = UI.modal(
             '<div class="modal__head"><h3>Удалить ' + esc(target.name) + '?</h3><button class="icon-btn" data-close>' + ic('x') + '</button></div>' +
             '<p style="color:var(--dust);font-size:14px">Аккаунт исчезнет из групп. Попытки и оплаты останутся в архиве.</p>' +
+            '<label class="field" style="margin-top:10px"><span class="field__label">твой пароль администратора</span>' +
+            '<input class="input" id="delAdmin" type="password" autocomplete="current-password"></label>' +
             '<div class="modal__foot"><button class="btn btn--ghost btn--full" data-close>Отмена</button>' +
             '<button class="btn btn--danger btn--full" id="delYes">Удалить</button></div>');
           m.el.querySelector('#delYes').addEventListener('click', function () {
-            DB.deleteUser(target.id).then(function () { m.close(); toast('Аккаунт удалён', 'warn'); draw(); });
+            var ap = m.el.querySelector('#delAdmin').value;
+            if (!ap) { toast('Введи пароль администратора', 'warn'); return; }
+            DB.deleteUser(target.id, user.login, ap).then(function (r) {
+              if (r && r.error) { toast(r.error, 'warn'); return; }
+              m.close(); toast('Аккаунт удалён', 'warn'); draw();
+            });
           });
         });
       });
@@ -1157,6 +1169,7 @@
           (isEdit ? '<label class="field"><span class="field__label">статус</span><select class="input" id="umActive">' +
             '<option value="on" ' + (u.active !== false ? 'selected' : '') + '>активен</option>' +
             '<option value="off" ' + (u.active === false ? 'selected' : '') + '>отключён (вход запрещён)</option></select></label>' : '') +
+          (isEdit ? '' : '<label class="field"><span class="field__label">твой пароль администратора (подтверждение)</span><input class="input" id="umSudo" type="password" autocomplete="current-password"></label>') +
           '<button class="btn btn--gold btn--full" id="umSave">' + (isEdit ? 'Сохранить' : 'Создать аккаунт ✦') + '</button>' +
         '</div>'
       );
@@ -1188,6 +1201,16 @@
         } else {
           var pass = document.getElementById('umPass').value;
           if (pass.length < 6) { toast('Пароль: минимум 6 символов', 'warn'); return; }
+          var sudo = document.getElementById('umSudo').value;
+          if (!sudo) { toast('Введи свой пароль администратора', 'warn'); return; }
+          if (DB.adapterName() === 'supabase') {
+            /* хэш создаёт сервер (pgcrypto), клиент паролей не касается */
+            DB.rpcCreateUser(user.login, sudo, record, pass).then(function (r) {
+              if (r && r.error) { toast(r.error, 'warn'); return; }
+              toast('Аккаунт создан. Передай логин и пароль ученику ✦'); rerender();
+            });
+            return;
+          }
           var salt = DB.randomSalt();
           DB.hashPassword(pass, salt).then(function (hash) {
             record.passHash = hash; record.salt = salt; record.active = true;
@@ -1724,6 +1747,7 @@
   function route(keepScroll) {
     Tests.cleanup();
     Mock.cleanup();
+    if (window.Room) Room.cleanup();
     var hash = location.hash.replace(/^#\/?/, '') || '';
     var parts = hash.split('/');
     var name = parts[0] || '';
@@ -1784,6 +1808,11 @@
         else Trainer.renderTrainer(document.getElementById('page'), user);
         break;
       case 'trainer-exam': Trainer.renderLevelExam(document.getElementById('page'), user, parts[1]); break;
+      case 'room':
+        if (!window.Room) { location.hash = '#/schedule'; break; }
+        if (parts[1]) Room.renderRoom(document.getElementById('page'), user, parts[1]);
+        else location.hash = '#/schedule';
+        break;
       case 'apply-consult':
         shell(user, 'trainer',
           '<div class="page-head"><p class="eyebrow">[ консультация ]</p><h1>Консультация с преподавателем</h1></div>' +

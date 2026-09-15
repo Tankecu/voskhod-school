@@ -1181,6 +1181,128 @@ body.exam-mode #cosmos { opacity: 0.45; }
 .hm-cell span { font-size: 11.5px; color: var(--dust); display: block; line-height: 1.3; margin: 2px 0 4px; }
 .hm-cell i { font-style: normal; font-family: var(--font-mono); font-size: 10px; color: var(--dust-2); letter-spacing: 0.06em; }
 
+/* ── комната занятия: видео, доска, чат ───────────────────── */
+
+.room { max-width: 1100px; margin-inline: auto; display: flex; flex-direction: column; min-height: calc(100dvh - 20px); }
+.room__head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 0 10px;
+  position: sticky; top: 0; z-index: 60;
+  background: linear-gradient(rgba(6,4,15,.95), rgba(6,4,15,.8) 75%, transparent);
+}
+.room__peers {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ion);
+  border: 1px solid rgba(103,232,249,.35);
+  padding: 5px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.room__stage { position: relative; flex: 1; display: flex; flex-direction: column; }
+.room__videos { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 760px) { .room__videos { grid-template-columns: 1fr 1fr; } }
+.room__tile {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #0B0820;
+  border: 1px solid var(--line);
+  aspect-ratio: 16/9;
+}
+.room__tile video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.room__tile-label {
+  position: absolute;
+  left: 8px; bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--stardust);
+  background: rgba(6,4,15,.7);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.room__board {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(103,232,249,.3);
+  min-height: 340px;
+  flex: 1;
+  background: #14102A;
+  touch-action: none;
+}
+.room__board canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+.room__board-tools {
+  position: absolute;
+  top: 8px; left: 8px;
+  display: flex; gap: 6px; z-index: 5;
+  background: rgba(6,4,15,.75);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+.room__color {
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  border: 1.5px solid var(--line);
+  cursor: pointer;
+  color: var(--stardust);
+  font-size: 13px;
+}
+.room__color.is-on { border-color: var(--ion); box-shadow: 0 0 0 2px rgba(103,232,249,.3); }
+
+.room__side {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(330px, 88vw);
+  z-index: 200;
+  background: rgba(12, 8, 32, 0.97);
+  border-left: 1px solid var(--line);
+  padding: 14px;
+  display: none;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.room__panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.room__chat-log { flex: 1; overflow-y: auto; display: grid; gap: 8px; align-content: start; padding-right: 4px; }
+.room__chat-msg { font-size: 13.5px; line-height: 1.45; }
+.room__chat-msg b { color: var(--ion); font-weight: 600; }
+.room__chat-sys { font-size: 11.5px; color: var(--dust-2); font-family: var(--font-mono); }
+.room__chat-form { display: flex; gap: 8px; margin-top: 10px; }
+.room__chat-form .input { flex: 1; }
+
+.room__controls {
+  position: sticky;
+  bottom: 10px;
+  z-index: 90;
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: nowrap;
+  padding: 8px;
+  border-radius: 18px;
+  background: rgba(12, 8, 32, 0.95);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 40px rgba(0,0,0,.5);
+}
+.room__ctl {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 9px 12px;
+  border-radius: 13px;
+  border: 1px solid var(--line);
+  background: rgba(237,235,255,.04);
+  color: var(--stardust);
+  cursor: pointer;
+  transition: background .2s, color .2s;
+  min-width: 52px;
+}
+.room__ctl span { font-size: 10px; font-family: var(--font-mono); letter-spacing: .04em; }
+.room__ctl .ic { width: 19px; height: 19px; }
+.room__ctl:hover { background: rgba(103,232,249,.08); }
+.room__ctl.is-on { background: rgba(103,232,249,.14); color: var(--ion); border-color: rgba(103,232,249,.45); }
+.room__ctl.is-off { color: var(--red); border-color: rgba(245,140,140,.5); }
+
 /* ── reduce motion ────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {

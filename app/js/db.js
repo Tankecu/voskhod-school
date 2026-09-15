@@ -10,7 +10,7 @@
 window.DB = (function () {
   'use strict';
 
-  var TABLES = ['users', 'groups', 'lessons', 'homework', 'payments', 'attempts', 'custom_tests', 'mock_results', 'leads', 'mastery', 'block_state', 'placement', 'plans_study', 'stardust', 'student_plans'];
+  var TABLES = ['users', 'groups', 'lessons', 'homework', 'payments', 'attempts', 'custom_tests', 'mock_results', 'leads', 'writings', 'mastery', 'block_state', 'placement', 'plans_study', 'stardust', 'student_plans'];
   var LS_KEY = 'vo-db-v2';
   var SESSION_KEY = 'vo-session';
 
@@ -19,7 +19,7 @@ window.DB = (function () {
   var initPromise = null;
 
   function emptyState() {
-    return { users: [], groups: [], lessons: [], homework: [], payments: [], attempts: [], custom_tests: [], mock_results: [], leads: [], mastery: [], block_state: [], placement: [], plans_study: [], stardust: [], student_plans: [] };
+    return { users: [], groups: [], lessons: [], homework: [], payments: [], attempts: [], custom_tests: [], mock_results: [], leads: [], writings: [], mastery: [], block_state: [], placement: [], plans_study: [], stardust: [], student_plans: [] };
   }
 
   /* ── camelCase ↔ snake_case (для Supabase) ── */
@@ -550,6 +550,15 @@ window.DB = (function () {
       return state.stardust.filter(function (s) { return s.studentId === studentId; })
         .sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
     },
+    saveWriting: function (w) { return adapter.upsert('writings', w); },
+    writingsFor: function (studentId) {
+      return state.writings.filter(function (w) { return w.studentId === studentId; })
+        .sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+    },
+    writingsForReview: function () {
+      return state.writings.filter(function (w) { return w.status === 'submitted'; });
+    },
+    writing: function (id) { return state.writings.find(function (w) { return w.id === id; }) || null; },
     addStardust: function (studentId, amount, reason) {
       var row = { id: api.newId('st'), studentId: studentId, amount: amount, reason: reason || '', createdAt: new Date().toISOString() };
       state.stardust.push(row);

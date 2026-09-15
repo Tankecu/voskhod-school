@@ -21,7 +21,7 @@ window.Trainer = (function () {
     var balance = DB.stardustBalance(user.id);
     var plan = DB.planStudyOf(user.id);
 
-    var blocksHtml = window.CURRICULUM.blocks.map(function (b) {
+    var blocksHtml = window.CURRICULUM_ALL.allBlocks().map(function (b) {
       var level = MASTERY.blockLevel(user.id, b.id);
       var meta = MASTERY.LEVEL_ICON[level] + ' ' + MASTERY.LEVEL_RU[level];
       var allGated = MASTERY.gatePassedAll(user.id, b.id);
@@ -203,7 +203,7 @@ window.Trainer = (function () {
   }
 
   function renderPlacementResults(root, user, res) {
-    var blocks = window.CURRICULUM.blocks.map(function (b) {
+    var blocks = window.CURRICULUM_ALL.allBlocks().map(function (b) {
       var lvl = res.blockStarts[b.id];
       return '<div class="stat-tile glass"><b style="font-size:20px">' + MASTERY.LEVEL_ICON[lvl] + '</b>' +
         '<span>' + esc(b.title) + '<br>' + MASTERY.LEVEL_RU[lvl] + '</span></div>';

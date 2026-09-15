@@ -31,25 +31,25 @@ window.MASTERY = (function () {
 
   function topicById(id) {
     var found = null;
-    window.CURRICULUM.blocks.forEach(function (b) {
+    window.CURRICULUM_ALL.allBlocks().forEach(function (b) {
       b.topics.forEach(function (t) { if (t.id === id) found = t; });
     });
     return found;
   }
   function blockById(id) {
     var found = null;
-    window.CURRICULUM.blocks.forEach(function (b) { if (b.id === id) found = b; });
+    window.CURRICULUM_ALL.allBlocks().forEach(function (b) { if (b.id === id) found = b; });
     return found;
   }
   function allTopics() {
     var out = [];
-    window.CURRICULUM.blocks.forEach(function (b) {
+    window.CURRICULUM_ALL.allBlocks().forEach(function (b) {
       b.topics.forEach(function (t) { out.push({ block: b, topic: t }); });
     });
     return out;
   }
   function blockIndex(blockId) {
-    return window.CURRICULUM.blocks.findIndex(function (b) { return b.id === blockId; });
+    return window.CURRICULUM_ALL.allBlocks().findIndex(function (b) { return b.id === blockId; });
   }
   function clamp(v) { return Math.max(0, Math.min(100, Math.round(v))); }
 
@@ -231,7 +231,7 @@ window.MASTERY = (function () {
 
     /* стартовые уровни блоков: среднее ≥ 55 → сразу серебро */
     var blockStarts = {};
-    window.CURRICULUM.blocks.forEach(function (b) {
+    window.CURRICULUM_ALL.allBlocks().forEach(function (b) {
       var sum = 0;
       b.topics.forEach(function (t) { sum += topicsScore[t.id] || 0; });
       var avg = sum / b.topics.length;
@@ -274,7 +274,7 @@ window.MASTERY = (function () {
       }
     });
     var examReady = null;
-    window.CURRICULUM.blocks.forEach(function (b) {
+    window.CURRICULUM_ALL.allBlocks().forEach(function (b) {
       if (canTakeExam(studentId, b.id) !== null) examReady = b.id;
     });
     return { nextByRoute: routeTopic, weakest: weakest, examReady: examReady };

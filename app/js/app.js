@@ -107,7 +107,6 @@
         return '<a class="side__item' + (route === n.id ? ' side__item--on' : '') + '" href="#/' + n.id + '">' + ic(n.icon) + n.label + '</a>';
       }).join('') +
       (user.role === 'teacher' ? '<a class="side__item' + (route === 'builder' ? ' side__item--on' : '') + '" href="#/builder">' + ic('edit') + 'Конструктор</a>' : '') +
-      (user.role === 'admin' ? '<a class="side__item' + (route === 'admin-groups' ? ' side__item--on' : '') + '" href="#/admin-groups">' + ic('grid') + 'Группы</a>' : '') +
       '</nav>' +
       '<div class="side__foot"><a class="side__item" href="#/settings">' + UI.avatar(user, 'sm') + '<span>' + esc(user.name.split(' ')[0]) + '</span></a></div>' +
       '</aside>';
@@ -292,7 +291,7 @@
             '<div class="hero-lesson__meta">' +
               '<span>' + ic('clock') + UI.dayLabel(next.date) + ', ' + esc(next.startTime) + '</span>' +
               (t ? '<span>' + UI.avatar(t, 'sm') + esc(t.name) + '</span>' : '') +
-              '<span>' + ic('users') + esc((DB.group(next.groupId) || {}).name || '') + '</span>' +
+              '<span>' + ic('users') + esc((DB.user(next.studentId) || {}).name || '') + '</span>' +
             '</div>' +
             '<div class="hero-lesson__actions">' +
               '<a class="btn btn--gold btn--sm" href="#/room/' + next.id + '">' + ic('play') + ' Комната занятия</a>' +
@@ -352,7 +351,7 @@
       var users = DB.allUsers();
       var students = users.filter(function (u) { return u.role === 'student'; });
       var teachers = users.filter(function (u) { return u.role === 'teacher'; });
-      var groups = DB.allGroups();
+      var groups = [];
       var month = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2);
       var paidThis = DB.allPayments().filter(function (p) { return p.month === month && p.status === 'paid'; });
       var revenueUZS = paidThis.filter(function (p) { return p.currency === 'UZS'; }).reduce(function (a, p) { return a + Number(p.amount || 0); }, 0);
@@ -544,7 +543,7 @@
       btn.addEventListener('click', function () {
         var l = DB.lesson(btn.dataset.details);
         if (!l) return;
-        var t = DB.user(l.teacherId), g = DB.group(l.groupId);
+        var t = DB.user(l.teacherId);
         var hwList = DB.hwFor(user).filter(function (h) { return h.lessonId === l.id; });
         var mats = (l.materials || []).map(function (m) {
           return '<a class="btn btn--ghost btn--sm" href="' + esc(m.url || '#demo') + '" target="_blank" rel="noopener" data-demo-link>' + ic('book') + ' ' + esc(m.name) + '</a>';
@@ -563,7 +562,7 @@
           '<div class="modal__body">' +
             '<p style="color:var(--dust)">' + esc(l.topic || '') + '</p>' +
             '<div style="display:flex;flex-wrap:wrap;gap:8px">' + statusChip(l) + '<span class="chip">' + esc(UI.fmtDateFull(l.date)) + ' · ' + esc(l.startTime) + '</span>' +
-            (g ? '<span class="chip">' + esc(g.name) + '</span>' : '') + '</div>' +
+            '</div>' +
             (t ? '<div class="lesson__teacher" style="font-size:14px">' + UI.avatar(t, 'md').replace('ava"', 'ava ava--gold"') + '<span><b style="color:var(--stardust)">' + esc(t.name) + '</b><br><span style="font-size:12px;color:var(--dust)">' + esc(t.subject || '') + '</span></span></div>' : '') +
             '<a class="btn btn--ion btn--full" href="#/room/' + l.id + '">' + ic('play') + ' Комната занятия</a>' +
             (mats ? '<div><p class="section-label" style="margin:6px 0 8px"><span>материалы</span></p><div style="display:flex;flex-wrap:wrap;gap:8px">' + mats + '</div></div>' : '') +
@@ -604,14 +603,14 @@
   }
 
   function lessonEditor(user, existing) {
-    var groups = DB.groupsFor(user);
+    var students = DB.myStudents ? DB.myStudents(user) : [];
     var teachers = user.role === 'admin'
       ? DB.allUsers().filter(function (u) { return u.role === 'teacher'; })
       : [user];
     if (!groups.length) { toast('Сначала создай группу (админ → Группы)', 'warn'); return; }
 
     var l = existing || {
-      id: DB.newId('l'), groupId: groups[0].id,
+      id: DB.newId('l'), studentId: students[0] ? students[0].id : '',
       teacherId: user.role === 'teacher' ? user.id : (teachers[0] ? teachers[0].id : ''),
       subject: '', topic: '', date: DB.todayIso(), startTime: '16:00', durMin: 90,
       room: 'https://meet.google.com/', materials: [],
@@ -673,8 +672,8 @@
       DB.saveLesson(lesson).then(function () {
         var hwTitle = v('leHwTitle');
         if (hwTitle) {
-          var record = existingHw || { id: DB.newId('h'), groupId: lesson.groupId, lessonId: lesson.id, doneBy: [] };
-          record.title = hwTitle; record.descr = v('leHwDesc'); record.due = v('leHwDue') || date; record.groupId = lesson.groupId;
+          var record = existingHw || { id: DB.newId('h'), studentId: lesson.studentId, lessonId: lesson.id, doneBy: [] };
+          record.title = hwTitle; record.descr = v('leHwDesc'); record.due = v('leHwDue') || date; record.studentId = lesson.studentId;
           return DB.saveHomework ? DB.saveHomework(record) : saveHw(record);
         } else if (existingHw) {
           return DB.removeHomework(existingHw.id);
@@ -989,24 +988,19 @@
   /* ═══════════ УЧЕНИКИ (учитель) ═══════════ */
 
   function renderStudents(user) {
-    var groups = DB.groupsFor(user);
+    var students = DB.myStudents ? DB.myStudents(user) : [];
     var body = '<div class="page-head"><p class="eyebrow">[ ученики · экипаж ]</p><h1>Ученики</h1></div>';
-    body += groups.map(function (g) {
-      var rows = g.studentIds.map(function (sid) {
-        var s = DB.user(sid);
-        if (!s) return '';
-        var lvl = DB.levelOf(s.xp || 0);
-        var at = DB.attemptsBy(sid);
-        var avg = at.length ? Math.round(at.reduce(function (acc, a) { return acc + a.score / a.max; }, 0) / at.length * 100) : null;
-        return '<a class="student-row" href="#/student/' + sid + '">' +
-          UI.avatar(s, 'md') +
-          '<div class="student-row__main"><b>' + esc(s.name) + '</b><span>' + esc(lvl.level.name) + ' · серия ' + (s.streak || 0) + '</span></div>' +
-          '<div class="student-row__stats"><b>' + (avg === null ? '—' : avg + '%') + '</b><span>' + (s.xp || 0) + ' XP</span></div>' +
-          '</a><a class="btn btn--ghost btn--sm" href="#/route/' + sid + '" style="margin:-6px 0 10px 16px;width:calc(100% - 16px)">🧭 Маршрут обучения</a>';
-      }).join('');
-      return '<p class="section-label"><span>' + esc(g.name) + ' · ' + g.studentIds.length + ' чел.</span></p>' +
-        '<div class="glass" style="padding:6px 0">' + (rows || emptyBox('users', 'Пусто', 'Добавь учеников в админ-панели')) + '</div>';
+    var rows = students.map(function (s) {
+      var lvl = DB.levelOf(s.xp || 0);
+      var at = DB.attemptsBy(s.id);
+      var avg = at.length ? Math.round(at.reduce(function (acc, a) { return acc + a.score / a.max; }, 0) / at.length * 100) : null;
+      return '<a class="student-row" href="#/student/' + s.id + '">' +
+        UI.avatar(s, 'md') +
+        '<div class="student-row__main"><b>' + esc(s.name) + '</b><span>' + esc(lvl.level.name) + ' · серия ' + (s.streak || 0) + '</span></div>' +
+        '<div class="student-row__stats"><b>' + (avg === null ? '—' : avg + '%') + '</b><span>' + (s.xp || 0) + ' XP</span></div>' +
+        '</a>';
     }).join('');
+    body += '<div class="glass" style="padding:6px 0">' + (rows || emptyBox('users', 'Пусто', 'Создай учеников в админ-панели')) + '</div>';
     shell(user, 'students', body, { wide: true });
   }
 
@@ -1149,7 +1143,7 @@
     }
 
     function userModal(existing) {
-      var groups = DB.allGroups();
+      var groups = [];
       var isEdit = !!existing;
       var u = existing || { id: DB.newId('u'), role: 'student', name: '', login: '', subject: '', groupId: (groups[0] || {}).id || '', active: true };
       UI.modal(
@@ -1163,8 +1157,8 @@
             }).join('') + '</select></label>' +
           '<label class="field" id="umSubjectWrap" style="display:none"><span class="field__label">предмет преподавателя</span><input class="input" id="umSubject" value="' + esc(u.subject || '') + '" placeholder="SAT Math · Математика"></label>' +
           '<label class="field" id="umRateWrap" style="display:none"><span class="field__label">ставка, $/час (для цены обучения)</span><input class="input" id="umRate" type="number" min="0" value="' + esc(u.rate || 0) + '"></label>' +
-          '<label class="field" id="umGroupWrap" style="display:none"><span class="field__label">группа ученика</span><select class="input" id="umGroup">' +
-            groups.map(function (g) { return '<option value="' + g.id + '" ' + (u.groupId === g.id ? 'selected' : '') + '>' + esc(g.name) + '</option>'; }).join('') + '</select></label>' +
+          '<label class="field" id="umGroupWrap" style="display:none"><span class="field__label">преподаватель ученика</span><select class="input" id="umTeacher">' +
+            DB.allUsers().filter(function (t) { return t.role === 'teacher'; }).map(function (t) { return '<option value="' + t.id + '" ' + (u.teacherId === t.id ? 'selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') + '</select></label>' +
           (isEdit ? '' : '<label class="field"><span class="field__label">начальный пароль</span><input class="input" id="umPass" type="text" minlength="6" placeholder="минимум 6 символов"></label>') +
           (isEdit ? '<label class="field"><span class="field__label">статус</span><select class="input" id="umActive">' +
             '<option value="on" ' + (u.active !== false ? 'selected' : '') + '>активен</option>' +
@@ -1190,7 +1184,7 @@
           name: name, login: login, role: role,
           subject: role === 'teacher' ? v('umSubject') : (role === 'admin' ? 'Администратор' : ''),
           rate: role === 'teacher' ? (+document.getElementById('umRate').value || 0) : (u.rate || 0),
-          groupId: role === 'student' ? v('umGroup') : '',
+          teacherId: role === 'student' ? v('umTeacher') : '',
         });
         if (isEdit) {
           record.active = document.getElementById('umActive').value === 'on';
@@ -1221,97 +1215,6 @@
             toast('Аккаунт создан. Передай логин и пароль ученику ✦'); rerender();
           });
         }
-      });
-    }
-
-    draw();
-  }
-
-  /* ═══════════ АДМИН: ГРУППЫ ═══════════ */
-
-  function renderAdminGroups(user) {
-    function draw() {
-      var groups = DB.allGroups();
-      var cards = groups.map(function (g) {
-        var teachers = g.teacherIds.map(function (id) { var x = DB.user(id); return x ? x.name.split(' ')[0] : null; }).filter(Boolean);
-        return '<div class="test-card glass">' +
-          '<div class="test-card__top"><h3>' + esc(g.name) + '</h3>' +
-          '<span class="chip">' + g.studentIds.length + ' учеников</span></div>' +
-          '<div class="test-card__meta"><span class="chip chip--ion">' + esc(teachers.join(', ') || 'нет преподавателей') + '</span></div>' +
-          '<div class="test-card__foot"><button class="btn btn--ghost btn--sm" data-edit="' + g.id + '">' + ic('edit') + ' Изменить</button>' +
-          '<button class="btn btn--danger btn--sm" data-del="' + g.id + '">' + ic('trash') + '</button></div></div>';
-      }).join('');
-
-      shell(user, 'admin-groups',
-        '<div class="page-head"><p class="eyebrow">[ группы · экипажи ]</p>' +
-        '<div class="page-head__row"><h1>Группы</h1>' +
-        '<button class="btn btn--gold btn--sm" id="addGroup">' + ic('plus') + ' Создать</button></div>' +
-        '<p>Группы связывают учеников, преподавателей и расписание</p></div>' +
-        (cards || emptyBox('grid', 'Групп пока нет', 'Создай первую группу — без неё нельзя назначать уроки')));
-
-      document.getElementById('addGroup').addEventListener('click', function () { groupModal(null); });
-      app.querySelectorAll('[data-edit]').forEach(function (b) {
-        b.addEventListener('click', function () { groupModal(DB.group(b.dataset.edit)); });
-      });
-      app.querySelectorAll('[data-del]').forEach(function (b) {
-        b.addEventListener('click', function () {
-          var g = DB.group(b.dataset.del);
-          var m = UI.modal(
-            '<div class="modal__head"><h3>Удалить группу?</h3><button class="icon-btn" data-close>' + ic('x') + '</button></div>' +
-            '<p style="color:var(--dust);font-size:14px">Уроки группы останутся, но потеряют привязку. Ученики останутся в системе.</p>' +
-            '<div class="modal__foot"><button class="btn btn--ghost btn--full" data-close>Отмена</button>' +
-            '<button class="btn btn--danger btn--full" id="delYes">Удалить</button></div>');
-          m.el.querySelector('#delYes').addEventListener('click', function () {
-            DB.removeGroup(g.id).then(function () { m.close(); toast('Группа удалена', 'warn'); draw(); });
-          });
-        });
-      });
-    }
-
-    function groupModal(existing) {
-      var teachers = DB.allUsers().filter(function (u) { return u.role === 'teacher'; });
-      var students = DB.allUsers().filter(function (u) { return u.role === 'student'; });
-      var g = existing || { id: DB.newId('g'), name: '', teacherIds: [], studentIds: [] };
-
-      function checks(list, field) {
-        if (!list.length) return '<p style="font-size:12.5px;color:var(--dust-2)">Пока нет — создай аккаунты в разделе «Люди»</p>';
-        return list.map(function (u) {
-          var on = g[field].indexOf(u.id) !== -1;
-          return '<label class="opt-row' + (on ? ' opt-row--right' : '') + '" style="padding:7px 0;cursor:pointer">' +
-            '<input type="checkbox" data-' + field + '="' + u.id + '" ' + (on ? 'checked' : '') + ' style="display:none">' +
-            '<span class="opt-row__radio"></span><span>' + esc(u.name) + '</span></label>';
-        }).join('');
-      }
-
-      UI.modal(
-        '<div class="modal__head"><h3>' + (existing ? 'Группа' : 'Новая группа') + '</h3><button class="icon-btn" data-close>' + ic('x') + '</button></div>' +
-        '<div class="modal__body">' +
-          '<label class="field"><span class="field__label">название</span><input class="input" id="gmName" value="' + esc(g.name) + '" placeholder="SAT 2026 · поток A"></label>' +
-          '<div><p class="section-label" style="margin:4px 0 6px"><span>преподаватели</span></p><div style="max-height:150px;overflow-y:auto">' + checks(teachers, 'teacherIds') + '</div></div>' +
-          '<div><p class="section-label" style="margin:4px 0 6px"><span>ученики</span></p><div style="max-height:200px;overflow-y:auto">' + checks(students, 'studentIds') + '</div></div>' +
-          '<button class="btn btn--gold btn--full" id="gmSave">' + (existing ? 'Сохранить' : 'Создать группу ✦') + '</button>' +
-        '</div>'
-      );
-      document.getElementById('gmSave').addEventListener('click', function () {
-        var name = document.getElementById('gmName').value.trim();
-        if (!name) { toast('Название обязательно', 'warn'); return; }
-        g.name = name;
-        ['teacherIds', 'studentIds'].forEach(function (field) {
-          g[field] = [];
-          document.querySelectorAll('[data-' + field + ']').forEach(function (cb) {
-            if (cb.checked) g[field].push(cb.dataset[field]);
-          });
-        });
-        /* синхронизируем groupId у учеников */
-        students.forEach(function (s) {
-          if (g.studentIds.indexOf(s.id) !== -1) s.groupId = g.id;
-          else if (s.groupId === g.id) s.groupId = '';
-          DB.saveUser(s);
-        });
-        DB.saveGroup(g).then(function () {
-          toast(existing ? 'Группа обновлена' : 'Группа создана ✦');
-          draw();
-        });
       });
     }
 
@@ -1422,21 +1325,13 @@
 
   function renderLeaderboard(user, scope) {
     var allStudents = DB.allUsers().filter(function (u) { return u.role === 'student'; });
-    var groups = DB.allGroups();
-
     function groupNameOf(studentId) {
-      var g = groups.find(function (x) { return x.studentIds.indexOf(studentId) !== -1; });
-      return g ? g.name : '—';
+      var s = DB.user(studentId);
+      return s && s.teacherId ? (DB.user(s.teacherId) || {}).name || '—' : '—';
     }
 
-    var myGroups = DB.groupsFor(user);
-    var groupStudents = [];
-    myGroups.forEach(function (g) {
-      g.studentIds.forEach(function (sid) {
-        var s = DB.user(sid);
-        if (s && groupStudents.indexOf(s) === -1) groupStudents.push(s);
-      });
-    });
+    var groupStudents = DB.myStudents(user);
+
     /* у ученика без группы дефолт — вся школа */
     if (!scope) scope = (user.role === 'student' && groupStudents.length) ? 'group' : 'school';
 
@@ -1455,14 +1350,8 @@
       }).join('');
     }
 
-    var myGroups = DB.groupsFor(user);
-    var groupStudents = [];
-    myGroups.forEach(function (g) {
-      g.studentIds.forEach(function (sid) {
-        var s = DB.user(sid);
-        if (s && groupStudents.indexOf(s) === -1) groupStudents.push(s);
-      });
-    });
+    var groupStudents = DB.myStudents(user);
+
 
     var tabs = '';
     if (user.role === 'student' && groupStudents.length) {
@@ -1636,7 +1525,6 @@
     if (user.role === 'admin') {
       items.push({ href: '#/admin-leads', icon: 'link', label: 'Заявки', sub: DB.newLeadsCount() ? DB.newLeadsCount() + ' новых' : 'с лендинга' });
       items.push({ href: '#/leaderboard', icon: 'users', label: 'Рейтинг', sub: 'XP по группам и школе' });
-      items.push({ href: '#/admin-groups', icon: 'grid', label: 'Группы', sub: 'экипажи школы' });
       items.push({ href: '#/tests', icon: 'clipboard', label: 'Тесты', sub: 'банк и конструктор' });
       items.push({ href: '#/theory', icon: 'book', label: 'Теория', sub: 'библиотека тем' });
     }
@@ -1836,7 +1724,6 @@
         else renderAdminPayments(user);
         break;
       case 'admin-users': renderAdminUsers(user); break;
-      case 'admin-groups': renderAdminGroups(user); break;
       case 'admin-payments': renderAdminPayments(user); break;
       case 'admin-leads':
         if (user.role !== 'admin') { location.hash = '#/today'; break; }

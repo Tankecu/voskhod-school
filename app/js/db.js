@@ -366,9 +366,17 @@ window.DB = (function () {
     allGroups: function () { return state.groups.slice(); },
     groupsFor: function (user) {
       if (!user) return [];
-      if (user.role === 'admin') return state.groups.slice();
-      if (user.role === 'teacher') return state.groups.filter(function (g) { return g.teacherIds.indexOf(user.id) !== -1; });
-      return state.groups.filter(function (g) { return g.studentIds.indexOf(user.id) !== -1; });
+      return [];
+    },
+    myStudents: function (user) {
+      if (!user) return [];
+      if (user.role === 'admin') return state.users.filter(function (u) { return u.role === 'student'; });
+      if (user.role === 'teacher') return state.users.filter(function (u) { return u.role === 'student' && u.teacherId === user.id; });
+      return state.users.filter(function (u) { return u.role === 'student' && u.teacherId && state.users.find(function (t) { return t.id === u.teacherId && t.id === user.id; }); });
+    },
+    myTeacher: function (studentId) {
+      var s = api.user(studentId);
+      return s && s.teacherId ? api.user(s.teacherId) : null;
     },
     saveGroup: function (g) { return adapter.upsert('groups', g); },
     removeGroup: function (id) { return adapter.remove('groups', id); },
@@ -377,9 +385,11 @@ window.DB = (function () {
 
     lesson: function (id) { return state.lessons.find(function (l) { return l.id === id; }) || null; },
     lessonsFor: function (user) {
-      var groupIds = api.groupsFor(user).map(function (g) { return g.id; });
-      return state.lessons
-        .filter(function (l) { return groupIds.indexOf(l.groupId) !== -1; })
+      if (user.role === 'student') {
+        return state.lessons.filter(function (l) { return l.studentId === user.id; })
+          .sort(function (a, b) { return (a.date + ' ' + a.startTime).localeCompare(b.date + ' ' + b.startTime); });
+      }
+      return state.lessons.filter(function (l) { return l.teacherId === user.id; })
         .sort(function (a, b) { return (a.date + ' ' + a.startTime).localeCompare(b.date + ' ' + b.startTime); });
     },
     lessonStatus: function (l) {
@@ -409,8 +419,12 @@ window.DB = (function () {
 
     homework: function (id) { return state.homework.find(function (h) { return h.id === id; }) || null; },
     hwFor: function (user) {
-      var groupIds = api.groupsFor(user).map(function (g) { return g.id; });
-      return state.homework.filter(function (h) { return groupIds.indexOf(h.groupId) !== -1; })
+      if (user.role === 'student') {
+        return state.homework.filter(function (h) { return h.studentId === user.id; })
+          .sort(function (a, b) { return a.due.localeCompare(b.due); });
+      }
+      var myIds = api.myStudents(user).map(function (s) { return s.id; });
+      return state.homework.filter(function (h) { return myIds.indexOf(h.studentId) !== -1; })
         .sort(function (a, b) { return a.due.localeCompare(b.due); });
     },
     toggleHwDone: function (hwId, studentId) {

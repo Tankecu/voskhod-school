@@ -1094,17 +1094,23 @@
       app.querySelectorAll('[data-edit]').forEach(function (b) {
         b.addEventListener('click', function () { userModal(DB.user(b.dataset.edit)); });
       });
+      function genPass() {
+        var chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+        var out = '';
+        for (var i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)];
+        return out;
+      }
       app.querySelectorAll('[data-pass]').forEach(function (b) {
         b.addEventListener('click', function () {
           var target = DB.user(b.dataset.pass);
           var m = UI.modal(
             '<div class="modal__head"><h3>Сброс пароля · ' + esc(target.name) + '</h3><button class="icon-btn" data-close>' + ic('x') + '</button></div>' +
             '<div class="modal__body">' +
-            '<label class="field"><span class="field__label">новый пароль ученика</span>' +
-            '<input class="input" id="npPass" type="text" minlength="6" placeholder="минимум 6 символов"></label>' +
-            '<label class="field"><span class="field__label">твой пароль администратора (подтверждение)</span>' +
-            '<input class="input" id="npAdmin" type="password" autocomplete="current-password"></label>' +
-            '<p style="font-size:12px;color:var(--dust)">Скажи новый пароль ученику лично. Хэш в базе заменится сразу.</p></div>' +
+            '<label class="field"><span class="field__label">новый пароль для ' + esc(target.name.split(' ')[0]) + ' (можно поменять)</span>' +
+            '<input class="input" id="npPass" type="text" minlength="6" value="' + genPass() + '" style="font-family:var(--font-mono);font-size:15px"></label>' +
+            '<label class="field"><span class="field__label">подтверди своим паролем админа</span>' +
+            '<input class="input" id="npAdmin" type="password" placeholder="твой пароль" autocomplete="current-password"></label>' +
+            '<p style="font-size:12px;color:var(--dust)">Скопируй пароль и отправь ученику. Он сможет сменить его в настройках.</p></div>' +
             '<div class="modal__foot"><button class="btn btn--ghost btn--full" data-close>Отмена</button>' +
             '<button class="btn btn--gold btn--full" id="npSave">Сбросить</button></div>');
           m.el.querySelector('#npSave').addEventListener('click', function () {

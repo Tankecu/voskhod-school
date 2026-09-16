@@ -77,6 +77,9 @@ window.Trainer = (function () {
           plan.topics.map(function (id) { var t = MASTERY.topicById(id); return t ? esc(t.title) : ''; }).join(' → ') + '</div>'
         : '') +
 
+      '<a class="login__card glass" href="#/vocab" style="margin-bottom:14px">' + ic('book') +
+        '<span><b>Слова дня</b><i>spaced repetition · SAT vocabulary</i></span>' +
+        '<span class="login__go">' + ic('back') + '</span></a>' +
       blocksHtml +
 
       '<div class="stack" style="margin-top:20px">' +

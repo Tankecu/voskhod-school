@@ -10,7 +10,7 @@
 window.DB = (function () {
   'use strict';
 
-  var TABLES = ['users', 'groups', 'lessons', 'homework', 'payments', 'attempts', 'custom_tests', 'mock_results', 'leads', 'writings', 'mastery', 'block_state', 'placement', 'plans_study', 'stardust', 'student_plans'];
+  var TABLES = ['users', 'groups', 'lessons', 'homework', 'payments', 'attempts', 'custom_tests', 'mock_results', 'leads', 'writings', 'mastery', 'block_state', 'placement', 'plans_study', 'stardust', 'student_plans', 'vocab_progress', 'tg_links'];
   var LS_KEY = 'vo-db-v2';
   var SESSION_KEY = 'vo-session';
 
@@ -19,7 +19,7 @@ window.DB = (function () {
   var initPromise = null;
 
   function emptyState() {
-    return { users: [], groups: [], lessons: [], homework: [], payments: [], attempts: [], custom_tests: [], mock_results: [], leads: [], writings: [], mastery: [], block_state: [], placement: [], plans_study: [], stardust: [], student_plans: [] };
+    return { users: [], groups: [], lessons: [], homework: [], payments: [], attempts: [], custom_tests: [], mock_results: [], leads: [], writings: [], mastery: [], block_state: [], placement: [], plans_study: [], stardust: [], student_plans: [], vocab_progress: [], tg_links: [] };
   }
 
   /* ── camelCase ↔ snake_case (для Supabase) ── */
@@ -559,6 +559,17 @@ window.DB = (function () {
       return state.writings.filter(function (w) { return w.status === 'submitted'; });
     },
     writing: function (id) { return state.writings.find(function (w) { return w.id === id; }) || null; },
+    vocabProgressFor: function (studentId) {
+      return state.vocab_progress.filter(function (v) { return v.studentId === studentId; });
+    },
+    vocabOf: function (studentId, wordId) {
+      return state.vocab_progress.find(function (v) { return v.studentId === studentId && v.wordId === wordId; }) || null;
+    },
+    saveVocabProgress: function (v) { return adapter.upsert('vocab_progress', v); },
+    tgLinkOf: function (login) {
+      return state.tg_links.find(function (t) { return t.login === login; }) || null;
+    },
+    saveTgLink: function (t) { return adapter.upsert('tg_links', t); },
     addStardust: function (studentId, amount, reason) {
       var row = { id: api.newId('st'), studentId: studentId, amount: amount, reason: reason || '', createdAt: new Date().toISOString() };
       state.stardust.push(row);
